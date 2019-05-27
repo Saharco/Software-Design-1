@@ -165,4 +165,3 @@ abstract class CourseAppDocument internal constructor(path: String, val storage:
     }
 
 }
-

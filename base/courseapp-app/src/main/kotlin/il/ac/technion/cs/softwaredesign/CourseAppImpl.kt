@@ -1,26 +1,29 @@
 package il.ac.technion.cs.softwaredesign
 
-import il.ac.technion.cs.softwaredesign.database.CourseAppDatabaseFactory
-import il.ac.technion.cs.softwaredesign.database.mocks.SecureStorageFactoryMock
+import com.google.inject.Inject
+import il.ac.technion.cs.softwaredesign.database.DatabaseMap
 
 /**
  * Implementation of CourseApp functionality
  * @see CourseApp
  */
-class CourseAppImpl : CourseApp {
+class CourseAppImpl @Inject constructor(private val map: DatabaseMap) : CourseApp {
 
-    val dbFactory = CourseAppDatabaseFactory(SecureStorageFactoryMock())
+    private val dbMap = map.dbMap
 
     override fun login(username: String, password: String): String {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        val auth = AuthenticationManager(usersDb = dbMap["users"]!!, tokensDb = dbMap["tokens"]!!)
+        return auth.performLogin(username, password)
     }
 
     override fun logout(token: String) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        val auth = AuthenticationManager(usersDb = dbMap["users"]!!, tokensDb = dbMap["tokens"]!!)
+        return auth.performLogout(token)
     }
 
     override fun isUserLoggedIn(token: String, username: String): Boolean? {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        val auth = AuthenticationManager(usersDb = dbMap["users"]!!, tokensDb = dbMap["tokens"]!!)
+        return auth.isUserLoggedIn(token, username)
     }
 
     override fun makeAdministrator(token: String, username: String) {
