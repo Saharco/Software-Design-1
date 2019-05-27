@@ -15,7 +15,7 @@ import java.time.LocalDateTime
  * @see CourseApp
  * @see Database
  *
- * @param db: database in which to store app's users & tokenss
+ * @param db: database in which to store app's users & tokens
  * @param usersRoot: (optional) root collection in which to store users
  * @param tokensRoot: (optional) root collection in which to store tokens
  *
@@ -23,10 +23,10 @@ import java.time.LocalDateTime
 class AuthenticationManager(db: Database,
                             private val usersRoot: CollectionReference = db
                                     .collection("all_users"),
-                            private val metadataRoot: CollectionReference = db
-                                    .collection("metadata"),
                             private val tokensRoot: CollectionReference = db
                                     .collection("tokens")) {
+
+    private val metadataRoot: CollectionReference = db.collection("metadata")
 
     fun performLogin(username: String, password: String): String {
         val userDocument = usersRoot.document(username)
