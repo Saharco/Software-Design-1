@@ -2,14 +2,16 @@ package il.ac.technion.cs.softwaredesign
 
 import com.authzee.kotlinguice4.KotlinModule
 import com.google.inject.Provides
+import com.google.inject.Singleton
 import il.ac.technion.cs.softwaredesign.database.CourseAppDatabaseFactory
 import il.ac.technion.cs.softwaredesign.database.Database
 import il.ac.technion.cs.softwaredesign.database.DatabaseMap
 import il.ac.technion.cs.softwaredesign.database.mocks.SecureStorageFactoryMock
+import il.ac.technion.cs.softwaredesign.storage.SecureStorageFactory
 
 class CourseAppModule : KotlinModule() {
 
-    private val factory = SecureStorageFactoryMock()
+    private val factory = SecureStorageFactoryMock() //TODO: change this when submitting
     private val dbFactory = CourseAppDatabaseFactory(factory)
 
     override fun configure() {
@@ -29,10 +31,11 @@ class CourseAppModule : KotlinModule() {
     }
 
     @Provides
+    @Singleton
     fun courseAppProvider(): DatabaseMap {
         val map = mutableMapOf<String, Database>()
         mapNewDatabase(map, "users")
-        mapNewDatabase(map, "tokens")
+        mapNewDatabase(map, "channels")
         return DatabaseMap(map)
     }
 

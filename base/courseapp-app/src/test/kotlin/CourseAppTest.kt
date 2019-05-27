@@ -1,7 +1,11 @@
 import com.authzee.kotlinguice4.getInstance
 import com.google.inject.Guice
 import il.ac.technion.cs.softwaredesign.CourseApp
+import il.ac.technion.cs.softwaredesign.CourseAppInitializer
 import il.ac.technion.cs.softwaredesign.CourseAppModule
+import il.ac.technion.cs.softwaredesign.exceptions.InvalidTokenException
+import il.ac.technion.cs.softwaredesign.exceptions.NoSuchEntityException
+import il.ac.technion.cs.softwaredesign.exceptions.UserAlreadyLoggedInException
 import il.ac.technion.cs.softwaredesign.storage.SecureStorageModule
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -12,12 +16,11 @@ import java.lang.IllegalArgumentException
 class CourseAppTest {
 
     private val injector = Guice.createInjector(CourseAppModule(), SecureStorageModule())
+    private val courseAppInitializer = injector.getInstance<CourseAppInitializer>()
 
-//    private val courseAppInitializer = injector.getInstance<CourseAppInitializer>()
-//
-//    init {
-//        courseAppInitializer.setup()
-//    }
+    init {
+        courseAppInitializer.setup()
+    }
 
     private val app = injector.getInstance<CourseApp>()
 //    private val courseAppStatistics = injector.getInstance<CourseAppStatistics>()
@@ -31,43 +34,43 @@ class CourseAppTest {
     }
 
     @Test
-    internal fun `attempting login twice without logout should throw IllegalArgumentException`() {
+    internal fun `attempting login twice without logout should throw UserAlreadyLoggedInException`() {
         app.login("sahar", "a very strong password")
 
-        assertThrows<IllegalArgumentException> {
+        assertThrows<UserAlreadyLoggedInException> {
             app.login("sahar", "a very strong password")
         }
     }
 
     @Test
-    internal fun `creating two users with same username should throw IllegalArgumentException`() {
+    internal fun `creating two users with same username should throw NoSuchEntityException`() {
         app.login("sahar", "a very strong password")
-        assertThrows<IllegalArgumentException> {
+        assertThrows<NoSuchEntityException> {
             app.login("sahar", "weak password")
         }
     }
 
     @Test
-    internal fun `using token to check login session after self's login session expires should throw IllegalArgumentException`() {
+    internal fun `using token to check login session after self's login session expires should throw InvalidTokenException`() {
         val token = app.login("sahar", "a very strong password")
         app.login("yuval", "popcorn")
         app.logout(token)
-        assertThrows<IllegalArgumentException> {
+        assertThrows<InvalidTokenException> {
             app.isUserLoggedIn(token, "yuval")
         }
     }
 
     @Test
-    internal fun `logging out with an invalid token should throw IllegalArgumentException`() {
+    internal fun `logging out with an invalid token should throw InvalidTokenException`() {
         var token = "invalid token"
-        assertThrows<IllegalArgumentException> {
+        assertThrows<InvalidTokenException> {
             app.logout(token)
         }
 
         token = app.login("sahar", "a very strong password")
         app.logout(token)
 
-        assertThrows<IllegalArgumentException> {
+        assertThrows<InvalidTokenException> {
             app.logout(token)
         }
     }

@@ -2,6 +2,10 @@ package il.ac.technion.cs.softwaredesign
 
 import il.ac.technion.cs.softwaredesign.database.CollectionReference
 import il.ac.technion.cs.softwaredesign.database.Database
+import il.ac.technion.cs.softwaredesign.exceptions.InvalidTokenException
+import il.ac.technion.cs.softwaredesign.exceptions.NoSuchEntityException
+import il.ac.technion.cs.softwaredesign.exceptions.UserAlreadyLoggedInException
+import il.ac.technion.cs.softwaredesign.exceptions.UserNotAuthorizedException
 import java.time.LocalDateTime
 
 /**
@@ -11,33 +15,41 @@ import java.time.LocalDateTime
  * @see CourseApp
  * @see Database
  *
- * @param usersDb: database in which to store app's users
- * @param tokensDb: (optional) database in which to store app's tokens
+ * @param db: database in which to store app's users & tokenss
  * @param usersRoot: (optional) root collection in which to store users
  * @param tokensRoot: (optional) root collection in which to store tokens
  *
  */
-class AuthenticationManager(usersDb: Database,
-                            tokensDb: Database = usersDb,
-                            private var usersRoot: CollectionReference = usersDb
-                                    .collection("root_users"),
-                            private var tokensRoot: CollectionReference = tokensDb
-                                    .collection("root_tokens")) {
+class AuthenticationManager(db: Database,
+                            private val usersRoot: CollectionReference = db
+                                    .collection("all_users"),
+                            private val metadataRoot: CollectionReference = db
+                                    .collection("metadata"),
+                            private val tokensRoot: CollectionReference = db
+                                    .collection("tokens")) {
 
     fun performLogin(username: String, password: String): String {
         val userDocument = usersRoot.document(username)
         val storedPassword = userDocument.read("password")
 
         if (storedPassword != null && storedPassword != password)
-            throw IllegalArgumentException("Incorrect password")
+            throw NoSuchEntityException("incorrect password")
         if (userDocument.read("token") != null)
-            throw IllegalArgumentException("User already logged in")
+            throw UserAlreadyLoggedInException()
 
         val token = generateToken(username)
         userDocument.set(Pair("token", token))
 
         if (storedPassword == null)
             userDocument.set(Pair("password", password))
+
+        val usersCountDocument = metadataRoot.document("users_data")
+        var usersCount = usersCountDocument.read("users_count")!!.toInt()
+
+        if (usersCount == 0) userDocument.set(Pair("isAdmin", "true"))
+
+        usersCountDocument.set(Pair("users_count", (++usersCount).toString()))
+                .update()
 
         userDocument.write()
 
@@ -51,7 +63,7 @@ class AuthenticationManager(usersDb: Database,
     fun performLogout(token: String) {
         val tokenDocument = tokensRoot.document(token)
         val username = tokenDocument.read("username")
-                ?: throw IllegalArgumentException("Invalid token")
+                ?: throw InvalidTokenException("token does not match any active user")
 
         tokenDocument.delete()
 
@@ -62,7 +74,7 @@ class AuthenticationManager(usersDb: Database,
     fun isUserLoggedIn(token: String, username: String): Boolean? {
         if (!tokensRoot.document(token)
                         .exists())
-            throw IllegalArgumentException("Invalid token")
+            throw InvalidTokenException("token does not match any active user")
 
         if (!usersRoot.document(username)
                         .exists())
@@ -71,6 +83,24 @@ class AuthenticationManager(usersDb: Database,
         val otherToken = usersRoot.document(username)
                 .read("token")
         return otherToken != null
+    }
+
+
+    fun makeAdministrator(token: String, username: String) {
+        val tokenUsername = tokensRoot.document(token)
+                .read("username")
+                ?: throw InvalidTokenException("token does not match any active user")
+
+        usersRoot.document(tokenUsername)
+                .read("isAdmin") ?: throw UserNotAuthorizedException("no admin permission")
+
+        try {
+            usersRoot.document(username)
+                    .set(Pair("isAdmin", "true"))
+                    .write()
+        } catch (e: IllegalArgumentException) {
+            throw NoSuchEntityException("given user does not exist")
+        }
     }
 
     /**

@@ -9,26 +9,24 @@ import il.ac.technion.cs.softwaredesign.database.DatabaseMap
  */
 class CourseAppImpl @Inject constructor(map: DatabaseMap) : CourseApp {
 
-    private val usersDb = map().getValue("users")
-    private val tokensDb = map().getValue("tokens")
+    private val dbUsers = map().getValue("users")
+    private val auth = AuthenticationManager(dbUsers)
+
 
     override fun login(username: String, password: String): String {
-        val auth = AuthenticationManager(usersDb, tokensDb)
         return auth.performLogin(username, password)
     }
 
     override fun logout(token: String) {
-        val auth = AuthenticationManager(usersDb, tokensDb)
         return auth.performLogout(token)
     }
 
     override fun isUserLoggedIn(token: String, username: String): Boolean? {
-        val auth = AuthenticationManager(usersDb, tokensDb)
         return auth.isUserLoggedIn(token, username)
     }
 
     override fun makeAdministrator(token: String, username: String) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        return auth.makeAdministrator(token, username)
     }
 
     override fun channelJoin(token: String, channel: String) {
