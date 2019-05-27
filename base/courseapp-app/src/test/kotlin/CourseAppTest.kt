@@ -6,6 +6,7 @@ import il.ac.technion.cs.softwaredesign.CourseAppModule
 import il.ac.technion.cs.softwaredesign.exceptions.InvalidTokenException
 import il.ac.technion.cs.softwaredesign.exceptions.NoSuchEntityException
 import il.ac.technion.cs.softwaredesign.exceptions.UserAlreadyLoggedInException
+import il.ac.technion.cs.softwaredesign.exceptions.UserNotAuthorizedException
 import il.ac.technion.cs.softwaredesign.storage.SecureStorageModule
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -126,6 +127,54 @@ class CourseAppTest {
                     .map(pool::get)
                     .joinToString("")
             list.add(randomString)
+        }
+    }
+
+    @Test
+    internal fun `first logged in user is an administrator by default`() {
+        val token = app.login("sahar", "a very strong password")
+        app.login("yuval", "weak password")
+
+        app.makeAdministrator(token, "yuval")
+    }
+
+    @Test
+    internal fun `administrator can appoint other users to be administrators`() {
+        val token1 = app.login("sahar", "a very strong password")
+        val token2 = app.login("yuval", "weak password")
+        app.login("victor", "anak")
+
+        app.makeAdministrator(token1, "yuval")
+        app.makeAdministrator(token2, "victor")
+    }
+
+    @Test
+    internal fun `trying to appoint others to be administrators without a valid token should throw InvalidTokenException`() {
+        app.login("sahar", "a very strong password")
+        app.login("yuval", "weak password")
+
+        assertThrows<InvalidTokenException> {
+            app.makeAdministrator("badToken", "yuval")
+        }
+    }
+
+    @Test
+    internal fun `trying to appoint others to be administrators without authorization should throw UserNotAuthorizedException`() {
+        app.login("sahar", "a very strong password")
+        val nonAdminToken = app.login("yuval", "weak password")
+        app.login("victor", "anak")
+
+        assertThrows<UserNotAuthorizedException> {
+            app.makeAdministrator(nonAdminToken, "victor")
+        }
+    }
+
+    @Test
+    internal fun `trying to appoint a non-existing user to be an administrator should NoSuchEntityException`() {
+        val adminToken = app.login("sahar", "a very strong password")
+
+        assertThrows<NoSuchEntityException> {
+            app.makeAdministrator(adminToken, "yuval")
         }
     }
 }

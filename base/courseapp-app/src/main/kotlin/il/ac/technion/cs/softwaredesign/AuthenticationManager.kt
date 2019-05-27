@@ -94,13 +94,13 @@ class AuthenticationManager(db: Database,
         usersRoot.document(tokenUsername)
                 .read("isAdmin") ?: throw UserNotAuthorizedException("no admin permission")
 
-        try {
-            usersRoot.document(username)
-                    .set(Pair("isAdmin", "true"))
-                    .write()
-        } catch (e: IllegalArgumentException) {
+        if (!usersRoot.document(username)
+                        .exists())
             throw NoSuchEntityException("given user does not exist")
-        }
+
+        usersRoot.document(username)
+                .set(Pair("isAdmin", "true"))
+                .update()
     }
 
     /**
