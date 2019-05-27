@@ -7,22 +7,23 @@ import il.ac.technion.cs.softwaredesign.database.DatabaseMap
  * Implementation of CourseApp functionality
  * @see CourseApp
  */
-class CourseAppImpl @Inject constructor(private val map: DatabaseMap) : CourseApp {
+class CourseAppImpl @Inject constructor(map: DatabaseMap) : CourseApp {
 
-    private val dbMap = map.dbMap
+    private val usersDb = map().getValue("users")
+    private val tokensDb = map().getValue("tokens")
 
     override fun login(username: String, password: String): String {
-        val auth = AuthenticationManager(usersDb = dbMap["users"]!!, tokensDb = dbMap["tokens"]!!)
+        val auth = AuthenticationManager(usersDb, tokensDb)
         return auth.performLogin(username, password)
     }
 
     override fun logout(token: String) {
-        val auth = AuthenticationManager(usersDb = dbMap["users"]!!, tokensDb = dbMap["tokens"]!!)
+        val auth = AuthenticationManager(usersDb, tokensDb)
         return auth.performLogout(token)
     }
 
     override fun isUserLoggedIn(token: String, username: String): Boolean? {
-        val auth = AuthenticationManager(usersDb = dbMap["users"]!!, tokensDb = dbMap["tokens"]!!)
+        val auth = AuthenticationManager(usersDb, tokensDb)
         return auth.isUserLoggedIn(token, username)
     }
 
