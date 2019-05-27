@@ -10,7 +10,9 @@ import il.ac.technion.cs.softwaredesign.database.DatabaseMap
 class CourseAppImpl @Inject constructor(map: DatabaseMap) : CourseApp {
 
     private val dbUsers = map().getValue("users")
+    private val dbChannels = map().getValue("channels")
     private val auth = AuthenticationManager(dbUsers)
+    private val channelsManager = ChannelsManager(dbUsers, dbChannels)
 
 
     override fun login(username: String, password: String): String {
@@ -18,7 +20,7 @@ class CourseAppImpl @Inject constructor(map: DatabaseMap) : CourseApp {
     }
 
     override fun logout(token: String) {
-        return auth.performLogout(token)
+        auth.performLogout(token)
     }
 
     override fun isUserLoggedIn(token: String, username: String): Boolean? {
@@ -26,11 +28,11 @@ class CourseAppImpl @Inject constructor(map: DatabaseMap) : CourseApp {
     }
 
     override fun makeAdministrator(token: String, username: String) {
-        return auth.makeAdministrator(token, username)
+        auth.makeAdministrator(token, username)
     }
 
     override fun channelJoin(token: String, channel: String) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        channelsManager.channelJoin(token, channel)
     }
 
     override fun channelPart(token: String, channel: String) {

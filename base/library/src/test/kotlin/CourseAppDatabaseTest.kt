@@ -202,7 +202,23 @@ class CourseAppDatabaseTest {
                 .read("age")
 
         assertNotEquals("21", result)
+    }
 
+    @Test
+    internal fun `can write and read lists as a document's field`() {
+        val documentRef = dbFactory.open("users")
+                .collection("root")
+                .document("sahar")
+
+        val list = mutableListOf("ice cream", "pizza", "popcorn")
+
+        documentRef.set("favorite foods", list)
+                .write()
+
+        val returnedList = documentRef.readCollection("favorite foods")
+
+        assertTrue(returnedList!!.containsAll(list))
+        assertTrue(list.containsAll(returnedList))
     }
 
     @Test

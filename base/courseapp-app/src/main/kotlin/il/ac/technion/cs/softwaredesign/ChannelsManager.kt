@@ -1,6 +1,6 @@
 package il.ac.technion.cs.softwaredesign
 
-import com.github.salomonbrys.kotson.toJson
+import com.google.gson.Gson
 import il.ac.technion.cs.softwaredesign.database.CollectionReference
 import il.ac.technion.cs.softwaredesign.database.Database
 import il.ac.technion.cs.softwaredesign.exceptions.InvalidTokenException
@@ -30,23 +30,44 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
                       private val channelsRoot: CollectionReference = dbChannels
                               .collection("all_channels")) {
 
-    private val usersMetadataRoot: CollectionReference = dbUsers.collection("metadata")
-    private val channelsMetadataRoot: CollectionReference = dbChannels.collection("metadata")
+//    private val usersMetadataRoot: CollectionReference = dbUsers.collection("metadata")
+//    private val channelsMetadataRoot: CollectionReference = dbChannels.collection("metadata")
 
     fun channelJoin(token: String, channel: String) {
         val tokenUsername = tokenToUser(token)
 
         if (!validChannelName(channel)) throw NameFormatException("invalid channel name")
 
+        var newChannelFlag = false
+
         if (!channelsRoot.document(channel).exists()) {
             if (!isAdmin(tokenUsername))
                 throw UserNotAuthorizedException("only an administrator may create a new channel")
-            channelsRoot.document("channel")
-                    //TODO: .set (...), user is an operator!
+            channelsRoot.document(channel)
+                    .set(Pair("operators", Gson().toJson(mutableListOf(tokenUsername))))
+                    .set(Pair("users_count", "1"))
                     .write()
+            newChannelFlag = true
         }
 
-        //TODO: add user to channel here
+        var userChannels = usersRoot.document(tokenUsername)
+                .readCollection("channels")
+        if (userChannels == null)
+            userChannels = mutableListOf()
+        userChannels = userChannels.toMutableList()
+        userChannels.add(channel)
+
+        usersRoot.document(tokenUsername)
+                .set("channels", userChannels)
+                .update()
+
+        if (!newChannelFlag) {
+            var usersCount = channelsRoot.document(channel)
+                    .read("users_count")!!.toInt()
+            channelsRoot.document("channel")
+                    .set(Pair("users_count", (++usersCount).toString()))
+                    .update()
+        }
     }
 
     fun channelPart(token: String, channel: String) {

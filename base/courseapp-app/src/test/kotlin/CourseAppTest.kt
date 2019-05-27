@@ -3,10 +3,7 @@ import com.google.inject.Guice
 import il.ac.technion.cs.softwaredesign.CourseApp
 import il.ac.technion.cs.softwaredesign.CourseAppInitializer
 import il.ac.technion.cs.softwaredesign.CourseAppModule
-import il.ac.technion.cs.softwaredesign.exceptions.InvalidTokenException
-import il.ac.technion.cs.softwaredesign.exceptions.NoSuchEntityException
-import il.ac.technion.cs.softwaredesign.exceptions.UserAlreadyLoggedInException
-import il.ac.technion.cs.softwaredesign.exceptions.UserNotAuthorizedException
+import il.ac.technion.cs.softwaredesign.exceptions.*
 import il.ac.technion.cs.softwaredesign.storage.SecureStorageModule
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -176,5 +173,38 @@ class CourseAppTest {
         assertThrows<NoSuchEntityException> {
             app.makeAdministrator(adminToken, "yuval")
         }
+    }
+
+    @Test
+    internal fun `joining a channel with an invalid name should throw NameFormatException`() {
+        val adminToken = app.login("sahar", "a very strong password")
+
+        assertThrows<NameFormatException> {
+            app.channelJoin(adminToken, "badName")
+        }
+    }
+
+    @Test
+    internal fun `creating a new channel without administrator authorization should throw UserNotAuthorizedException`() {
+        app.login("sahar", "a very strong password")
+        val notAdminToken = app.login("yuval", "weak password")
+
+        assertThrows<UserNotAuthorizedException> {
+            app.channelJoin(notAdminToken, "#TakeCare")
+        }
+    }
+
+    @Test
+    internal fun `administrator can successfully create new channels`() {
+        val adminToken = app.login("sahar", "a very strong password")
+        app.channelJoin(adminToken, "#TakeCare")
+    }
+
+    @Test
+    internal fun `users can successfully join an existing channel`() {
+        val adminToken = app.login("sahar", "a very strong password")
+        val notAdminToken = app.login("yuval", "weak password")
+        app.channelJoin(adminToken, "#TakeCare")
+        app.channelJoin(notAdminToken, "#TakeCare")
     }
 }

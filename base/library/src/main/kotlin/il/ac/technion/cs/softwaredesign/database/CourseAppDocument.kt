@@ -1,5 +1,7 @@
 package il.ac.technion.cs.softwaredesign.database
 
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import il.ac.technion.cs.softwaredesign.storage.SecureStorage
 
 
@@ -15,6 +17,12 @@ abstract class CourseAppDocument internal constructor(path: String, val storage:
 
     override fun set(field: Pair<String, String>): CourseAppDocument {
         data[field.first] = field.second
+        return this
+    }
+
+    override fun set(field: String, list: List<String>): CourseAppDocument {
+        val jsonString = Gson().toJson(list)
+        data[field] = jsonString
         return this
     }
 
@@ -60,6 +68,24 @@ abstract class CourseAppDocument internal constructor(path: String, val storage:
         return String(value
                 .takeLast(value.size - 1)
                 .toByteArray())
+    }
+
+    override fun readCollection(field: String): Collection<String>? {
+        if (!isValidPath())
+            return null
+
+        val key = ("$path$field/").toByteArray()
+
+        val value = storage.read(key)?.toList()
+        if (value == null || value[0] == 0.toByte())
+            return null
+
+        val json = String(value
+                .takeLast(value.size - 1)
+                .toByteArray())
+
+        val collectionType = object : TypeToken<Collection<String>>() {}.type
+        return Gson().fromJson(json, collectionType)
     }
 
     /**

@@ -93,6 +93,15 @@ interface DocumentReference {
     fun set(field: Pair<String, String>): CourseAppDocument
 
     /**
+     * Sets a field in the document that corresponds to a list.
+     * The information will be stored upon creating the document with a [write]
+     *
+     * @param field: field's name
+     * @param list: list of strings to store in this field
+     */
+    fun set(field: String, list: List<String>): CourseAppDocument
+
+    /**
      * Sets multiple fields in the document.
      * The information will be stored upon creating the document with a [write]
      *
@@ -115,6 +124,8 @@ interface DocumentReference {
      * @param field: name of the field from which the desired information will be read
      */
     fun read(field: String): String?
+
+    fun readCollection(field: String): Collection<String>?
 
     /**
      * Update information of a document in the database. This operation may be performed on an existing document
