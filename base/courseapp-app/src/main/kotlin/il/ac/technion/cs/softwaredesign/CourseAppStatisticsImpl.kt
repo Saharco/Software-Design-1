@@ -9,9 +9,7 @@ import il.ac.technion.cs.softwaredesign.utils.DatabaseMapper
  */
 class CourseAppStatisticsImpl @Inject constructor(dbMapper: DatabaseMapper) : CourseAppStatistics {
 
-    private val dbUsers = dbMapper("users")
-    private val dbChannels = dbMapper("channels")
-    private val auth = AuthenticationManager(dbUsers, dbChannels)
+    private val auth = AuthenticationManager(dbMapper)
 
     override fun totalUsers(): Long {
         return auth.getTotalUsers()

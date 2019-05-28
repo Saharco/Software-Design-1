@@ -6,6 +6,7 @@ import com.google.inject.Singleton
 import il.ac.technion.cs.softwaredesign.database.CourseAppDatabaseFactory
 import il.ac.technion.cs.softwaredesign.database.Database
 import il.ac.technion.cs.softwaredesign.mocks.SecureStorageFactoryMock
+import il.ac.technion.cs.softwaredesign.storage.SecureStorage
 import il.ac.technion.cs.softwaredesign.utils.DatabaseMapper
 
 class CourseAppModule : KotlinModule() {
@@ -32,13 +33,23 @@ class CourseAppModule : KotlinModule() {
     @Provides
     @Singleton
     fun courseAppProvider(): DatabaseMapper {
-        val map = mutableMapOf<String, Database>()
-        mapNewDatabase(map, "users")
-        mapNewDatabase(map, "channels")
-        return DatabaseMapper(map)
+        val dbMap = mutableMapOf<String, Database>()
+        val storageMap = mutableMapOf<String, SecureStorage>()
+
+        mapNewDatabase(dbMap, "users")
+        mapNewDatabase(dbMap, "channels")
+
+        mapNewStorage(storageMap, "channels_by_users")
+        mapNewStorage(storageMap, "channels_by_active_users")
+        mapNewStorage(storageMap, "users_by_channels")
+        return DatabaseMapper(dbMap, storageMap)
     }
 
     private fun mapNewDatabase(dbMap: MutableMap<String, Database>, dbName: String) {
         dbMap[dbName] = dbFactory.open(dbName)
+    }
+
+    private fun mapNewStorage(storageMap: MutableMap<String, SecureStorage>, storageName: String) {
+        storageMap[storageName] = factory.open(storageName.toByteArray())
     }
 }

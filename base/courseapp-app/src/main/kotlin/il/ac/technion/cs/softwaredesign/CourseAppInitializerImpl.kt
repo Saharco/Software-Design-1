@@ -10,7 +10,7 @@ import il.ac.technion.cs.softwaredesign.utils.DatabaseMapper
 class CourseAppInitializerImpl @Inject constructor(private val dbMapper: DatabaseMapper):
         CourseAppInitializer {
     override fun setup() {
-        val dbUsers = dbMapper("users")
+        val dbUsers = dbMapper.getDatabase("users")
         dbUsers.collection("metadata")
                 .document("users_data")
                 .set(Pair("users_count", "0"))

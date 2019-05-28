@@ -9,10 +9,8 @@ import il.ac.technion.cs.softwaredesign.utils.DatabaseMapper
  */
 class CourseAppImpl @Inject constructor(dbMapper: DatabaseMapper) : CourseApp {
 
-    private val dbUsers = dbMapper("users")
-    private val dbChannels = dbMapper("channels")
-    private val auth = AuthenticationManager(dbUsers, dbChannels)
-    private val channelsManager = ChannelsManager(dbUsers, dbChannels)
+    private val auth = AuthenticationManager(dbMapper)
+    private val channelsManager = ChannelsManager(dbMapper)
 
 
     override fun login(username: String, password: String): String {

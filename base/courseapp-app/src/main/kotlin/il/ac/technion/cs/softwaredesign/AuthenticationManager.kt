@@ -1,12 +1,12 @@
 package il.ac.technion.cs.softwaredesign
 
-import il.ac.technion.cs.softwaredesign.database.CollectionReference
 import il.ac.technion.cs.softwaredesign.database.Database
 import il.ac.technion.cs.softwaredesign.database.DocumentReference
 import il.ac.technion.cs.softwaredesign.exceptions.InvalidTokenException
 import il.ac.technion.cs.softwaredesign.exceptions.NoSuchEntityException
 import il.ac.technion.cs.softwaredesign.exceptions.UserAlreadyLoggedInException
 import il.ac.technion.cs.softwaredesign.exceptions.UserNotAuthorizedException
+import il.ac.technion.cs.softwaredesign.utils.DatabaseMapper
 import java.time.LocalDateTime
 
 /**
@@ -16,22 +16,20 @@ import java.time.LocalDateTime
  * @see CourseApp
  * @see Database
  *
- * @param dbUsers: database in which to store app's users & tokens
- * @param dbChannels: database in which to store the app's channels
- * @param usersRoot: (optional) root collection in which to store users
- * @param tokensRoot: (optional) root collection in which to store tokens
- * @param channelsRoot: (optional) root collection in which to store channels
+ * @param dbMapper: mapper object that contains the app's open databases
  *
  */
-class AuthenticationManager(private val dbUsers: Database, private val dbChannels: Database,
-                            private val usersRoot: CollectionReference = dbUsers
-                                    .collection("all_users"),
-                            private val tokensRoot: CollectionReference = dbUsers
-                                    .collection("tokens"),
-                            private val channelsRoot: CollectionReference = dbChannels
-                                    .collection("all_channels")) {
+class AuthenticationManager(private val dbMapper: DatabaseMapper) {
 
-    private val metadataRoot: CollectionReference = dbUsers.collection("metadata")
+
+    private val usersRoot = dbMapper.getDatabase("users")
+            .collection("all_users")
+    private val tokensRoot = dbMapper.getDatabase("users")
+            .collection("tokens")
+    private val channelsRoot = dbMapper.getDatabase("channels")
+            .collection("all_channels")
+    private val metadataRoot = dbMapper.getDatabase("users")
+            .collection("metadata")
 
     fun performLogin(username: String, password: String): String {
         val userDocument = usersRoot.document(username)
@@ -121,7 +119,8 @@ class AuthenticationManager(private val dbUsers: Database, private val dbChannel
      *  - number of users in the system,
      *  - number of logged in users in each channel that the user is a member of,
      *  - administrator privilege is given to the user if they're the first user in the system,
-     *  - password is written for the user if it's their first time logging in
+     *  - password is written for the user if it's their first time logging in,
+     *  - creation time is written for the user if it's their first time logging in
      *
      *  @param userDocument: fetched document of the user who's logging in
      *  @param storedPassword: the password currently stored in the user's document
@@ -132,6 +131,7 @@ class AuthenticationManager(private val dbUsers: Database, private val dbChannel
                                 enteredPassword: String) {
         if (storedPassword == null) {
             userDocument.set(Pair("password", enteredPassword))
+                    .set(Pair("creation_time", LocalDateTime.now().toString()))
 
             val usersCountDocument = metadataRoot.document("users_data")
             val usersCount = usersCountDocument.read("users_count")?.toInt()?.plus(1)
