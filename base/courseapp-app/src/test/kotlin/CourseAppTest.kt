@@ -137,7 +137,7 @@ class CourseAppTest {
     internal fun `administrator can appoint other users to be administrators`() {
         val token1 = app.login("sahar", "a very strong password")
         val token2 = app.login("yuval", "weak password")
-        app.login("victor", "anak")
+        app.login("victor", "big")
 
         app.makeAdministrator(token1, "yuval")
         app.makeAdministrator(token2, "victor")
@@ -157,7 +157,7 @@ class CourseAppTest {
     internal fun `trying to appoint others to be administrators without authorization should throw UserNotAuthorizedException`() {
         app.login("sahar", "a very strong password")
         val nonAdminToken = app.login("yuval", "weak password")
-        app.login("victor", "anak")
+        app.login("victor", "big")
 
         assertThrows<UserNotAuthorizedException> {
             app.makeAdministrator(nonAdminToken, "victor")
@@ -257,5 +257,57 @@ class CourseAppTest {
         }
     }
 
+    @Test
+    internal fun `trying to appoint an operator as user who's neither operator nor administrator should throw UserNotAuthorizedException`() {
+        val adminToken = app.login("sahar", "a very strong password")
+        val notAdminToken = app.login("yuval", "a weak password")
+        app.login("victor", "big")
+        app.channelJoin(adminToken, "#TakeCare")
+        
+        assertThrows<UserNotAuthorizedException> {
+            app.channelMakeOperator(notAdminToken, "#TakeCare", "victor")
+        }
+    }
 
+    @Test
+    internal fun `trying to appoint another user to an operator as an admin who's not an operator should throw UserNotAuthorizedException`() {
+        val adminToken = app.login("sahar", "a very strong password")
+        val otherToken = app.login("yuval", "a weak password")
+        app.login("victor", "big")
+        app.makeAdministrator(adminToken, "yuval")
+        app.channelJoin(otherToken, "#TakeCare")
+
+        assertThrows<UserNotAuthorizedException> {
+            app.channelMakeOperator(adminToken, "#TakeCare", "victor")
+        }
+    }
+
+    @Test
+    internal fun `trying to appoint an operator as a user who's not a member of the channel should throw UserNotAuthorizedException`() {
+        val adminToken = app.login("sahar", "a very strong password")
+        val otherToken = app.login("yuval", "a weak password")
+        app.makeAdministrator(adminToken, "yuval")
+        app.channelJoin(otherToken, "#TakeCare")
+
+        assertThrows<UserNotAuthorizedException> {
+            app.channelMakeOperator(adminToken, "#TakeCare", "sahar")
+        }
+    }
+
+    @Test
+    internal fun `operator can appoint other channel members to be operators`() {
+        val adminToken = app.login("sahar", "a very strong password")
+        val otherToken = app.login("yuval", "a weak password")
+        val lastToken = app.login("victor", "big")
+        app.channelJoin(adminToken, "#TakeCare")
+        app.channelJoin(otherToken, "#TakeCare")
+        app.channelJoin(lastToken, "#TakeCare")
+
+        assertThrows<UserNotAuthorizedException> {
+            app.channelMakeOperator(otherToken, "#TakeCare", "victor")
+        }
+        app.channelMakeOperator(adminToken, "#TakeCare", "yuval")
+
+        app.channelMakeOperator(otherToken, "#TakeCare", "victor")
+    }
 }

@@ -1,6 +1,5 @@
 package il.ac.technion.cs.softwaredesign
 
-import com.google.gson.Gson
 import il.ac.technion.cs.softwaredesign.database.CollectionReference
 import il.ac.technion.cs.softwaredesign.database.Database
 import il.ac.technion.cs.softwaredesign.exceptions.InvalidTokenException
@@ -44,7 +43,7 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
             if (!isAdmin(tokenUsername))
                 throw UserNotAuthorizedException("only an administrator may create a new channel")
             channelsRoot.document(channel)
-                    .set(Pair("operators", Gson().toJson(mutableListOf(tokenUsername))))
+                    .set("operators", listOf(tokenUsername))
                     .set(Pair("users_count", "1"))
                     .write()
             newChannelFlag = true
@@ -78,16 +77,25 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
         val tokenUsername = tokenToUser(token)
         verifyChannelExists(channel)
 
-        val channelsList = usersRoot.document(tokenUsername)
-                .readCollection("channels")
-        if (channelsList == null || !channelsList.contains(channel))
+        if (!isMemberOfChannel(tokenUsername, channel))
             throw NoSuchEntityException("user is not a member of the channel")
 
-        val mutableList = channelsList.toMutableList()
-        mutableList.remove(channel)
+        val userChannelsList = usersRoot.document(tokenUsername)
+                .readCollection("channels")!!.toMutableList()
+        userChannelsList.remove(channel)
         usersRoot.document(tokenUsername)
-                .set("channels", mutableList)
+                .set("channels", userChannelsList)
                 .update()
+
+        val operators = channelsRoot.document(channel)
+                .readCollection("operators")?.toMutableList()
+
+        if (operators != null && operators.contains(tokenUsername)) {
+            operators.remove(tokenUsername)
+            channelsRoot.document(channel)
+                    .set("operators", operators)
+                    .update()
+        }
 
         val usersCount = channelsRoot.document(channel)
                 .read("users_count")!!.toInt() - 1
@@ -106,7 +114,39 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
         val tokenUsername = tokenToUser(token)
         verifyChannelExists(channel)
 
+        val isUserAdministrator = isAdmin(tokenUsername)
+        val isUserOperator = isOperator(tokenUsername, channel)
 
+        if (!isUserAdministrator && !isUserOperator)
+            throw UserNotAuthorizedException("user is not an operator / administrator")
+
+        if (isUserAdministrator && !isUserOperator && tokenUsername != username)
+            throw UserNotAuthorizedException("administrator who's not an operator cannot appoint" +
+                    "other users to be operators")
+
+        if (!isMemberOfChannel(tokenUsername, channel))
+            throw UserNotAuthorizedException("user is not a member in the channel")
+
+        val otherUserExists = usersRoot.document(username)
+                .exists()
+
+        if (!otherUserExists || !isMemberOfChannel(username, channel))
+            throw NoSuchEntityException("given username is not a member in the channel")
+
+        // all requirements are filled: appoint user to channel operator
+        val operators = channelsRoot.document(channel)
+                .readCollection("operators")?.toMutableList() ?: mutableListOf()
+        operators.add(username)
+
+        channelsRoot.document(channel)
+                .set("operators", operators)
+                .update()
+    }
+
+    private fun isMemberOfChannel(username: String, channel: String): Boolean {
+        val channelsList = usersRoot.document(username)
+                .readCollection("channels")
+        return channelsList != null && channelsList.contains(channel)
     }
 
     private fun verifyChannelExists(channel: String) {
@@ -126,6 +166,12 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
         return usersRoot.document(username)
                 .read("isAdmin")
                 .equals("true")
+    }
+
+    private fun isOperator(username: String, channel: String): Boolean {
+        val channelModerators = channelsRoot.document(channel)
+                .readCollection("operators") ?: return false
+        return channelModerators.contains(username)
     }
 
     private fun validChannelName(channel: String): Boolean {
