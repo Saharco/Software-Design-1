@@ -1,16 +1,24 @@
 package il.ac.technion.cs.softwaredesign
 
+import com.google.inject.Inject
+import il.ac.technion.cs.softwaredesign.utils.DatabaseMapper
+
 /**
  * Implementation of CourseApp querying functionality
  * @see CourseAppStatistics
  */
-class CourseAppStatisticsImpl : CourseAppStatistics {
+class CourseAppStatisticsImpl @Inject constructor(dbMapper: DatabaseMapper) : CourseAppStatistics {
+
+    private val dbUsers = dbMapper("users")
+    private val dbChannels = dbMapper("channels")
+    private val auth = AuthenticationManager(dbUsers, dbChannels)
+
     override fun totalUsers(): Long {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        return auth.getTotalUsers()
     }
 
     override fun loggedInUsers(): Long {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        return auth.getLoggedInUsers()
     }
 
     override fun top10ChannelsByUsers(): List<String> {

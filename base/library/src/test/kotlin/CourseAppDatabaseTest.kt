@@ -3,7 +3,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import il.ac.technion.cs.softwaredesign.database.CourseAppDatabaseFactory
-import il.ac.technion.cs.softwaredesign.database.mocks.SecureStorageFactoryMock
+import il.ac.technion.cs.softwaredesign.mocks.SecureStorageFactoryMock
 import java.lang.IllegalArgumentException
 
 class CourseAppDatabaseTest {
@@ -202,7 +202,23 @@ class CourseAppDatabaseTest {
                 .read("age")
 
         assertNotEquals("21", result)
+    }
 
+    @Test
+    internal fun `can write and read lists as a document's field`() {
+        val documentRef = dbFactory.open("users")
+                .collection("root")
+                .document("sahar")
+
+        val list = mutableListOf("ice cream", "pizza", "popcorn")
+
+        documentRef.set("favorite foods", list)
+                .write()
+
+        val returnedList = documentRef.readList("favorite foods")
+
+        assertTrue(returnedList!!.containsAll(list))
+        assertTrue(list.containsAll(returnedList))
     }
 
     @Test

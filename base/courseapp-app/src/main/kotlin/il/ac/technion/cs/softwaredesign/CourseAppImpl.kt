@@ -1,16 +1,18 @@
 package il.ac.technion.cs.softwaredesign
 
 import com.google.inject.Inject
-import il.ac.technion.cs.softwaredesign.database.DatabaseMap
+import il.ac.technion.cs.softwaredesign.utils.DatabaseMapper
 
 /**
  * Implementation of CourseApp functionality
  * @see CourseApp
  */
-class CourseAppImpl @Inject constructor(map: DatabaseMap) : CourseApp {
+class CourseAppImpl @Inject constructor(dbMapper: DatabaseMapper) : CourseApp {
 
-    private val dbUsers = map().getValue("users")
-    private val auth = AuthenticationManager(dbUsers)
+    private val dbUsers = dbMapper("users")
+    private val dbChannels = dbMapper("channels")
+    private val auth = AuthenticationManager(dbUsers, dbChannels)
+    private val channelsManager = ChannelsManager(dbUsers, dbChannels)
 
 
     override fun login(username: String, password: String): String {
@@ -18,7 +20,7 @@ class CourseAppImpl @Inject constructor(map: DatabaseMap) : CourseApp {
     }
 
     override fun logout(token: String) {
-        return auth.performLogout(token)
+        auth.performLogout(token)
     }
 
     override fun isUserLoggedIn(token: String, username: String): Boolean? {
@@ -26,34 +28,34 @@ class CourseAppImpl @Inject constructor(map: DatabaseMap) : CourseApp {
     }
 
     override fun makeAdministrator(token: String, username: String) {
-        return auth.makeAdministrator(token, username)
+        auth.makeAdministrator(token, username)
     }
 
     override fun channelJoin(token: String, channel: String) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        channelsManager.channelJoin(token, channel)
     }
 
     override fun channelPart(token: String, channel: String) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        channelsManager.channelPart(token, channel)
     }
 
     override fun channelMakeOperator(token: String, channel: String, username: String) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        channelsManager.channelMakeOperator(token, channel, username)
     }
 
     override fun channelKick(token: String, channel: String, username: String) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        channelsManager.channelKick(token, channel, username)
     }
 
     override fun isUserInChannel(token: String, channel: String, username: String): Boolean? {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        return channelsManager.isUserInChannel(token, channel, username)
     }
 
     override fun numberOfActiveUsersInChannel(token: String, channel: String): Long {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        return channelsManager.numberOfActiveUsersInChannel(token, channel)
     }
 
     override fun numberOfTotalUsersInChannel(token: String, channel: String): Long {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        return channelsManager.numberOfTotalUsersInChannel(token, channel)
     }
 }
