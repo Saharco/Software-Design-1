@@ -36,11 +36,11 @@ class CourseAppImpl @Inject constructor(map: DatabaseMap) : CourseApp {
     }
 
     override fun channelPart(token: String, channel: String) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        channelsManager.channelPart(token, channel)
     }
 
     override fun channelMakeOperator(token: String, channel: String, username: String) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        channelsManager.channelMakeOperator(token, channel, username)
     }
 
     override fun channelKick(token: String, channel: String, username: String) {

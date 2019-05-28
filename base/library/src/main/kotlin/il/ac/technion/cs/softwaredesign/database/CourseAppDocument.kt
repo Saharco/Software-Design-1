@@ -104,6 +104,8 @@ abstract class CourseAppDocument internal constructor(path: String, val storage:
     }
 
     override fun delete() {
+        for (field in data.keys)
+            deleteEntry("$path$field/")
         deleteEntry(path)
     }
 

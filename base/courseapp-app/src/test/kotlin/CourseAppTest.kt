@@ -8,8 +8,6 @@ import il.ac.technion.cs.softwaredesign.storage.SecureStorageModule
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import java.lang.IllegalArgumentException
-
 
 class CourseAppTest {
 
@@ -182,6 +180,14 @@ class CourseAppTest {
         assertThrows<NameFormatException> {
             app.channelJoin(adminToken, "badName")
         }
+
+        assertThrows<NameFormatException> {
+            app.channelJoin(adminToken, "#ba\$dName")
+        }
+
+        assertThrows<NameFormatException> {
+            app.channelJoin(adminToken, "#bad Name")
+        }
     }
 
     @Test
@@ -207,4 +213,49 @@ class CourseAppTest {
         app.channelJoin(adminToken, "#TakeCare")
         app.channelJoin(notAdminToken, "#TakeCare")
     }
+
+    @Test
+    internal fun `attempting to leave a channel a user is not a member of should throw NoSuchEntityException`() {
+        val adminToken = app.login("sahar", "a very strong password")
+        val notAdminToken = app.login("yuval", "weak password")
+        app.channelJoin(adminToken, "#TakeCare")
+        assertThrows<NoSuchEntityException> {
+            app.channelPart(notAdminToken, "#TakeCare")
+        }
+    }
+
+    @Test
+    internal fun `attempting to leave a channel that does not exist should throw NoSuchEntityException`() {
+        val token = app.login("sahar", "a very strong password")
+        assertThrows<NoSuchEntityException> {
+            app.channelPart(token, "#TakeCare")
+        }
+    }
+
+    @Test
+    internal fun `channel is destroyed when last user leaves it`() {
+        val adminToken = app.login("sahar", "a very strong password")
+        val notAdminToken = app.login("yuval", "weak password")
+        app.channelJoin(adminToken, "#TakeCare")
+        app.channelPart(adminToken, "#TakeCare")
+
+        assertThrows<UserNotAuthorizedException> {
+            app.channelJoin(notAdminToken, "#TakeCare")
+        }
+    }
+
+    @Test
+    internal fun `joining a channel more than once has no effect`() {
+        val adminToken = app.login("sahar", "a very strong password")
+        for (i in 1..5) {
+            app.channelJoin(adminToken, "#TakeCare")
+        }
+        app.channelPart(adminToken, "#TakeCare")
+
+        assertThrows<NoSuchEntityException> {
+            app.channelPart(adminToken, "#TakeCare")
+        }
+    }
+
+
 }

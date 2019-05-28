@@ -54,6 +54,10 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
                 .readCollection("channels")
         if (userChannels == null)
             userChannels = mutableListOf()
+
+        // finish if user attempted joining a channel they're already members of
+        if (userChannels.contains(channel)) return
+
         userChannels = userChannels.toMutableList()
         userChannels.add(channel)
 
@@ -62,10 +66,10 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
                 .update()
 
         if (!newChannelFlag) {
-            var usersCount = channelsRoot.document(channel)
-                    .read("users_count")!!.toInt()
+            val usersCount = channelsRoot.document(channel)
+                    .read("users_count")!!.toInt() + 1
             channelsRoot.document("channel")
-                    .set(Pair("users_count", (++usersCount).toString()))
+                    .set(Pair("users_count", usersCount.toString()))
                     .update()
         }
     }
@@ -74,7 +78,28 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
         val tokenUsername = tokenToUser(token)
         verifyChannelExists(channel)
 
-        //TODO: delete user from channel & potentially delete channel
+        val channelsList = usersRoot.document(tokenUsername)
+                .readCollection("channels")
+        if (channelsList == null || !channelsList.contains(channel))
+            throw NoSuchEntityException("user is not a member of the channel")
+
+        val mutableList = channelsList.toMutableList()
+        mutableList.remove(channel)
+        usersRoot.document(tokenUsername)
+                .set("channels", mutableList)
+                .update()
+
+        val usersCount = channelsRoot.document(channel)
+                .read("users_count")!!.toInt() - 1
+        if (usersCount == 0) {
+            // the last user has left the channel: delete the channel
+            channelsRoot.document(channel)
+                    .delete()
+        }
+
+        channelsRoot.document("channel")
+                .set(Pair("users_count", (usersCount).toString()))
+                .update()
     }
 
     fun channelMakeOperator(token: String, channel: String, username: String) {
@@ -86,7 +111,7 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
 
     private fun verifyChannelExists(channel: String) {
         if (!channelsRoot.document(channel)
-                .exists())
+                        .exists())
             throw NoSuchEntityException("given channel does not exist")
     }
 
