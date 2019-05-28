@@ -165,6 +165,20 @@ class ChannelsManager(private val dbMapper: DatabaseMapper) {
                 .read("users_count")!!.toLong()
     }
 
+    fun topKChannelsByUsers(k: Int = 10): List<String> {
+        return treeTopK(channelsByUsers, k)
+    }
+
+
+    fun topKChannelsByActiveUsers(k: Int = 10): List<String> {
+        return treeTopK(channelsByActiveUsers, k)
+    }
+
+
+    fun topKUsersByChannels(k: Int = 10): List<String> {
+        return treeTopK(usersByChannels, k)
+    }
+
     /**
      * Creates a new channel with a given operator for the channel
      */

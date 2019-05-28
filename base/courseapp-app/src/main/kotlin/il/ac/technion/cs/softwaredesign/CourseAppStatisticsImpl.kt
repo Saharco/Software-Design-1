@@ -10,6 +10,7 @@ import il.ac.technion.cs.softwaredesign.utils.DatabaseMapper
 class CourseAppStatisticsImpl @Inject constructor(dbMapper: DatabaseMapper) : CourseAppStatistics {
 
     private val auth = AuthenticationManager(dbMapper)
+    private val channelsManager = ChannelsManager(dbMapper)
 
     override fun totalUsers(): Long {
         return auth.getTotalUsers()
@@ -20,14 +21,14 @@ class CourseAppStatisticsImpl @Inject constructor(dbMapper: DatabaseMapper) : Co
     }
 
     override fun top10ChannelsByUsers(): List<String> {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        return channelsManager.topKChannelsByUsers()
     }
 
     override fun top10ActiveChannelsByUsers(): List<String> {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        return channelsManager.topKChannelsByActiveUsers()
     }
 
     override fun top10UsersByChannels(): List<String> {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        return channelsManager.topKUsersByChannels()
     }
 }
