@@ -3,7 +3,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import il.ac.technion.cs.softwaredesign.database.CourseAppDatabaseFactory
-import il.ac.technion.cs.softwaredesign.database.mocks.SecureStorageFactoryMock
+import il.ac.technion.cs.softwaredesign.mocks.SecureStorageFactoryMock
 import java.lang.IllegalArgumentException
 
 class CourseAppDatabaseTest {
@@ -215,7 +215,7 @@ class CourseAppDatabaseTest {
         documentRef.set("favorite foods", list)
                 .write()
 
-        val returnedList = documentRef.readCollection("favorite foods")
+        val returnedList = documentRef.readList("favorite foods")
 
         assertTrue(returnedList!!.containsAll(list))
         assertTrue(list.containsAll(returnedList))

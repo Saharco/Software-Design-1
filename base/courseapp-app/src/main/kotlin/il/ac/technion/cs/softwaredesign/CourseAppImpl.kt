@@ -1,16 +1,16 @@
 package il.ac.technion.cs.softwaredesign
 
 import com.google.inject.Inject
-import il.ac.technion.cs.softwaredesign.database.DatabaseMap
+import il.ac.technion.cs.softwaredesign.utils.DatabaseMapper
 
 /**
  * Implementation of CourseApp functionality
  * @see CourseApp
  */
-class CourseAppImpl @Inject constructor(mapper: DatabaseMap) : CourseApp {
+class CourseAppImpl @Inject constructor(dbMapper: DatabaseMapper) : CourseApp {
 
-    private val dbUsers = mapper().getValue("users")
-    private val dbChannels = mapper().getValue("channels")
+    private val dbUsers = dbMapper("users")
+    private val dbChannels = dbMapper("channels")
     private val auth = AuthenticationManager(dbUsers, dbChannels)
     private val channelsManager = ChannelsManager(dbUsers, dbChannels)
 

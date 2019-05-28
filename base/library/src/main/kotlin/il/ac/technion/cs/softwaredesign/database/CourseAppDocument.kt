@@ -4,11 +4,10 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import il.ac.technion.cs.softwaredesign.storage.SecureStorage
 
-
 /**
  * Implementation of [DocumentReference].
  *
- * This class is abstract - it can only be constructed via access from the database's root
+ * This class is abstract - it can only be constructed via [CourseAppCollection]
  */
 abstract class CourseAppDocument internal constructor(path: String, val storage: SecureStorage)
     : DocumentReference {
@@ -70,7 +69,12 @@ abstract class CourseAppDocument internal constructor(path: String, val storage:
                 .toByteArray())
     }
 
-    override fun readCollection(field: String): Collection<String>? {
+    /**
+     * @inheritDoc
+     *
+     * Returns null if the data does not exist in the document
+     */
+    override fun readList(field: String): List<String>? {
         if (!isValidPath())
             return null
 
@@ -157,10 +161,8 @@ abstract class CourseAppDocument internal constructor(path: String, val storage:
     /**
      * Creates all the documents in the full path leading to the final document in the path
      */
-
-
-    //users/sahar/pictures/one.jpg/
     private fun allocatePath() {
+        // this regex splits the path by the '/' delimiter
         val reg = Regex("(?<=/)")
         val pathSequence = ArrayList<String>(path.split(reg))
         var currentPath = pathSequence.removeAt(0)
@@ -191,5 +193,4 @@ abstract class CourseAppDocument internal constructor(path: String, val storage:
         val store = statusBlock(activated = false)
         storage.write(key, store)
     }
-
 }

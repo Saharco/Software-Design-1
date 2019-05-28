@@ -5,9 +5,8 @@ import com.google.inject.Provides
 import com.google.inject.Singleton
 import il.ac.technion.cs.softwaredesign.database.CourseAppDatabaseFactory
 import il.ac.technion.cs.softwaredesign.database.Database
-import il.ac.technion.cs.softwaredesign.database.DatabaseMap
-import il.ac.technion.cs.softwaredesign.database.mocks.SecureStorageFactoryMock
-import il.ac.technion.cs.softwaredesign.storage.SecureStorageFactory
+import il.ac.technion.cs.softwaredesign.mocks.SecureStorageFactoryMock
+import il.ac.technion.cs.softwaredesign.utils.DatabaseMapper
 
 class CourseAppModule : KotlinModule() {
 
@@ -32,11 +31,11 @@ class CourseAppModule : KotlinModule() {
 
     @Provides
     @Singleton
-    fun courseAppProvider(): DatabaseMap {
+    fun courseAppProvider(): DatabaseMapper {
         val map = mutableMapOf<String, Database>()
         mapNewDatabase(map, "users")
         mapNewDatabase(map, "channels")
-        return DatabaseMap(map)
+        return DatabaseMapper(map)
     }
 
     private fun mapNewDatabase(dbMap: MutableMap<String, Database>, dbName: String) {

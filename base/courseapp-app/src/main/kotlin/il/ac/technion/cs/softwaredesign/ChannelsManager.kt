@@ -9,7 +9,7 @@ import il.ac.technion.cs.softwaredesign.exceptions.UserNotAuthorizedException
 
 
 /**
- * Manages channels in the app: this class wraps all functionality that corresponds to channels
+ * Manages channels in the app: this class wraps channels functionality
  *
  * @see CourseApp
  * @see Database
@@ -28,9 +28,6 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
                               .collection("tokens"),
                       private val channelsRoot: CollectionReference = dbChannels
                               .collection("all_channels")) {
-
-//    private val usersMetadataRoot: CollectionReference = dbUsers.collection("metadata")
-//    private val channelsMetadataRoot: CollectionReference = dbChannels.collection("metadata")
 
     fun channelJoin(token: String, channel: String) {
         val tokenUsername = tokenToUser(token)
@@ -51,10 +48,12 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
         }
 
         val userChannels = usersRoot.document(tokenUsername)
-                .readCollection("channels")?.toMutableList() ?: mutableListOf()
+                .readList("channels")?.toMutableList() ?: mutableListOf()
 
-        // finish if user attempted joining a channel they're already members of
-        if (userChannels.contains(channel)) return
+
+        if (userChannels.contains(channel))
+            // user attempted joining a channel they're already members of: finish
+            return
 
         userChannels.add(channel)
 
@@ -113,7 +112,7 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
         // all requirements are filled: appoint user to channel operator
 
         val operators = channelsRoot.document(channel)
-                .readCollection("operators")?.toMutableList() ?: mutableListOf()
+                .readList("operators")?.toMutableList() ?: mutableListOf()
         operators.add(username)
 
         channelsRoot.document(channel)
@@ -174,14 +173,14 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
 
     private fun expelChannelMember(username: String, channel: String) {
         val userChannelsList = usersRoot.document(username)
-                .readCollection("channels")?.toMutableList() ?: mutableListOf()
+                .readList("channels")?.toMutableList() ?: mutableListOf()
         userChannelsList.remove(channel)
         usersRoot.document(username)
                 .set("channels", userChannelsList)
                 .update()
 
         val operators = channelsRoot.document(channel)
-                .readCollection("operators")?.toMutableList() ?: mutableListOf()
+                .readList("operators")?.toMutableList() ?: mutableListOf()
 
         if (operators.contains(username)) {
             operators.remove(username)
@@ -200,7 +199,7 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
         }
 
         if (usersRoot.document(username)
-                .read("token") != null) {
+                        .read("token") != null) {
             val onlineUsersCount = channelsRoot.document(channel)
                     .read("online_users_count")?.toInt()?.minus(1) ?: 0
 
@@ -214,37 +213,64 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
                 .update()
     }
 
+    /**
+     * Returns whether a given user is a member of a given channel or not
+     */
     private fun isMemberOfChannel(username: String, channel: String): Boolean {
         val channelsList = usersRoot.document(username)
-                .readCollection("channels")
+                .readList("channels")
         return channelsList != null && channelsList.contains(channel)
     }
 
+    /**
+     * Makes sure that a given channel exists
+     *
+     * @throws NoSuchEntityException if the channel does not exist
+     */
     private fun verifyChannelExists(channel: String) {
         if (!channelsRoot.document(channel)
                         .exists())
             throw NoSuchEntityException("given channel does not exist")
     }
 
-
+    /**
+     * Translates a token to its corresponding user
+     *
+     * @throws InvalidTokenException if the token does not belong to any user
+     */
     private fun tokenToUser(token: String): String {
         return tokensRoot.document(token)
                 .read("username")
                 ?: throw InvalidTokenException("token does not match any active user")
     }
 
+    /**
+     * Returns whether or not a given user is an administrator
+     */
     private fun isAdmin(username: String): Boolean {
         return usersRoot.document(username)
                 .read("isAdmin")
                 .equals("true")
     }
 
+    /**
+     * Returns whether or not a given user is an operator of a given channel
+     */
     private fun isOperator(username: String, channel: String): Boolean {
         val channelModerators = channelsRoot.document(channel)
-                .readCollection("operators") ?: return false
+                .readList("operators") ?: return false
         return channelModerators.contains(username)
     }
 
+    /**
+     * Checks channels' names validity.
+     * A channel's name is valid only if the following hold:
+     *  - first letter is '#'
+     *  - contains *only* a-z, A-Z, 0-9, '#' or '_' characters
+     *
+     * @param channel: name of the channel
+     * @return true if the channel's name is valid, false otherwise
+     */
     private fun validChannelName(channel: String): Boolean {
         if (channel[0] != '#') return false
         val validCharPool = ('a'..'z') + ('A'..'Z') + ('0'..'9') + '#' + '_'

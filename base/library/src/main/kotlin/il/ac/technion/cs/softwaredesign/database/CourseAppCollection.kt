@@ -1,7 +1,13 @@
 package il.ac.technion.cs.softwaredesign.database
 
 import il.ac.technion.cs.softwaredesign.storage.SecureStorage
+import il.ac.technion.cs.softwaredesign.utils.Hasher
 
+/**
+ * Implementation of [CollectionReference].
+ *
+ * This class is abstract - it can only be constructed via [Database] or [ExtendableDocumentReference]
+ */
 abstract class CourseAppCollection internal constructor(path: String, val storage: SecureStorage)
     : CollectionReference {
     private val path: String = "$path/"
@@ -11,12 +17,4 @@ abstract class CourseAppCollection internal constructor(path: String, val storag
         return object : CourseAppExtendableDocument(
                 path + hasher(name), storage) {}
     }
-
-    /*
-    override fun collection(name: String): CollectionReference {
-        return object : CourseAppCollection(
-                path + name.replace("/", ""), storage) {}
-    }
-
-     */
 }

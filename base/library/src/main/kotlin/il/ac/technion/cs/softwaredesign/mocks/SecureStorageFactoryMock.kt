@@ -1,4 +1,4 @@
-package il.ac.technion.cs.softwaredesign.database.mocks
+package il.ac.technion.cs.softwaredesign.mocks
 
 import il.ac.technion.cs.softwaredesign.storage.SecureStorage
 import il.ac.technion.cs.softwaredesign.storage.SecureStorageFactory

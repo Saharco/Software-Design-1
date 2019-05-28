@@ -123,6 +123,10 @@ class AuthenticationManager(private val dbUsers: Database, private val dbChannel
      *  - administrator privilege is given to the user if they're the first user in the system,
      *  - password is written for the user if it's their first time logging in
      *
+     *  @param userDocument: fetched document of the user who's logging in
+     *  @param storedPassword: the password currently stored in the user's document
+     *  @param enteredPassword: the password entered by the user
+     *
      */
     private fun updateLoginData(userDocument: DocumentReference, storedPassword: String?,
                                 enteredPassword: String) {
@@ -144,7 +148,7 @@ class AuthenticationManager(private val dbUsers: Database, private val dbChannel
         usersCountDocument.set(Pair("online_users_count", onlineUsersCount.toString()))
                 .update()
 
-        val channels = userDocument.readCollection("channels")?.toMutableList()
+        val channels = userDocument.readList("channels")?.toMutableList()
                 ?: mutableListOf()
         for (channel in channels) {
             val newOnlineUsersCount = channelsRoot.document(channel)
@@ -171,7 +175,7 @@ class AuthenticationManager(private val dbUsers: Database, private val dbChannel
         usersCountDocument.set(Pair("online_users_count", onlineUsersCount.toString()))
                 .update()
 
-        val channels = userDocument.readCollection("channels")?.toMutableList()
+        val channels = userDocument.readList("channels")?.toMutableList()
                 ?: mutableListOf()
         for (channel in channels) {
             val newOnlineUsersCount = channelsRoot.document(channel)

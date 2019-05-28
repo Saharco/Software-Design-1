@@ -1,4 +1,4 @@
-package il.ac.technion.cs.softwaredesign.database
+package il.ac.technion.cs.softwaredesign.utils
 
 import java.security.MessageDigest
 
