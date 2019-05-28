@@ -45,6 +45,7 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
             channelsRoot.document(channel)
                     .set("operators", listOf(tokenUsername))
                     .set(Pair("users_count", "1"))
+                    .set(Pair("online_users_count", "1"))
                     .write()
             newChannelFlag = true
         }
@@ -63,9 +64,15 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
 
         if (!newChannelFlag) {
             val usersCount = channelsRoot.document(channel)
-                    .read("users_count")!!.toInt() + 1
+                    .read("users_count")?.toInt()?.plus(1) ?: 1
             channelsRoot.document(channel)
                     .set(Pair("users_count", usersCount.toString()))
+                    .update()
+
+            val onlineUsersCount = channelsRoot.document(channel)
+                    .read("online_users_count")?.toInt()?.plus(1) ?: 1
+            channelsRoot.document(channel)
+                    .set(Pair("online_users_count", onlineUsersCount.toString()))
                     .update()
         }
     }
@@ -128,10 +135,7 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
     }
 
     fun isUserInChannel(token: String, channel: String, username: String): Boolean? {
-        val tokenUsername = tokenToUser(token)
-        verifyChannelExists(channel)
-        if (!isAdmin(tokenUsername) && !isMemberOfChannel(tokenUsername, channel))
-            throw UserNotAuthorizedException("must be an admin or a member of the channel")
+        verifyValidAndPrivilegedToQuery(token, channel)
 
         if (!usersRoot.document(username)
                         .exists())
@@ -139,14 +143,33 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
         return isMemberOfChannel(username, channel)
     }
 
+    fun numberOfActiveUsersInChannel(token: String, channel: String): Long {
+        verifyValidAndPrivilegedToQuery(token, channel)
+
+        return channelsRoot.document(channel)
+                .read("online_users_count")?.toLong() ?: 0
+
+    }
+
     fun numberOfTotalUsersInChannel(token: String, channel: String): Long {
+        verifyValidAndPrivilegedToQuery(token, channel)
+
+        return channelsRoot.document(channel)
+                .read("users_count")!!.toLong()
+    }
+
+    /**
+     * Verifies the token & channel for *querying operations*
+     *
+     * @throws InvalidTokenException If the auth [token] is invalid.
+     * @throws NoSuchEntityException If [channel] does not exist.
+     * @throws UserNotAuthorizedException If [token] identifies a user who is not an administrator and is not a member
+     */
+    private fun verifyValidAndPrivilegedToQuery(token: String, channel: String) {
         val tokenUsername = tokenToUser(token)
         verifyChannelExists(channel)
         if (!isAdmin(tokenUsername) && !isMemberOfChannel(tokenUsername, channel))
             throw UserNotAuthorizedException("must be an admin or a member of the channel")
-
-        return channelsRoot.document(channel)
-                .read("users_count")!!.toLong()
     }
 
     private fun expelChannelMember(username: String, channel: String) {
@@ -173,6 +196,17 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
             // the last user has left the channel: delete the channel
             channelsRoot.document(channel)
                     .delete()
+            return
+        }
+
+        if (usersRoot.document(username)
+                .read("token") != null) {
+            val onlineUsersCount = channelsRoot.document(channel)
+                    .read("online_users_count")?.toInt()?.minus(1) ?: 0
+
+            channelsRoot.document(channel)
+                    .set(Pair("online_users_count", onlineUsersCount.toString()))
+                    .update()
         }
 
         channelsRoot.document(channel)

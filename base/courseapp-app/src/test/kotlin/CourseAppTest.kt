@@ -239,8 +239,9 @@ class CourseAppTest {
         app.channelJoin(adminToken, "#TakeCare")
         app.channelPart(adminToken, "#TakeCare")
 
-        // non-admin can only join a non-existing channel
-        app.channelJoin(notAdminToken, "#TakeCare")
+        assertThrows<UserNotAuthorizedException> {
+            app.channelJoin(notAdminToken, "#TakeCare")
+        }
     }
 
     @Test
@@ -375,7 +376,7 @@ class CourseAppTest {
     }
 
     @Test
-    internal fun `member can query the total number of members in the channel`() {
+    internal fun `member & admin can query the total number of members in the channel`() {
         val adminToken = app.login("sahar", "a very strong password")
         val token2 = app.login("yuval", "a weak password")
         val token3 = app.login("victor", "big")
@@ -390,10 +391,37 @@ class CourseAppTest {
         app.channelJoin(token3, channel)
         assertEquals(3, app.numberOfTotalUsersInChannel(token3, channel))
 
-        app.channelPart(token3, channel)
-        assertEquals(2, app.numberOfTotalUsersInChannel(token2, channel))
+        app.channelPart(adminToken, channel)
+        assertEquals(2, app.numberOfTotalUsersInChannel(adminToken, channel))
 
-        app.channelPart(token2, channel)
+        app.channelPart(token3, channel)
         assertEquals(1, app.numberOfTotalUsersInChannel(adminToken, channel))
+    }
+
+    @Test
+    internal fun `member & admin can query the number of active members in the channel`() {
+        val adminToken = app.login("sahar", "a very strong password")
+        val token2 = app.login("yuval", "a weak password")
+        val channelOne = "#TakeCare"
+        val channelTwo = "#TakeCare2"
+
+        app.channelJoin(adminToken, channelOne)
+        app.channelJoin(adminToken, channelTwo)
+
+        app.channelJoin(token2, channelOne)
+        app.channelJoin(token2, channelTwo)
+
+        assertEquals(2, app.numberOfActiveUsersInChannel(adminToken, channelOne))
+        assertEquals(2, app.numberOfActiveUsersInChannel(adminToken, channelTwo))
+
+        app.channelPart(adminToken, channelOne)
+
+        assertEquals(1, app.numberOfActiveUsersInChannel(adminToken, channelOne))
+        assertEquals(2, app.numberOfActiveUsersInChannel(adminToken, channelTwo))
+
+        app.logout(token2)
+
+        assertEquals(0, app.numberOfActiveUsersInChannel(adminToken, channelOne))
+        assertEquals(1, app.numberOfActiveUsersInChannel(adminToken, channelTwo))
     }
 }

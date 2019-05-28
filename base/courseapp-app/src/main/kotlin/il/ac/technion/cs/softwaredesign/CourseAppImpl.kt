@@ -11,7 +11,7 @@ class CourseAppImpl @Inject constructor(map: DatabaseMap) : CourseApp {
 
     private val dbUsers = map().getValue("users")
     private val dbChannels = map().getValue("channels")
-    private val auth = AuthenticationManager(dbUsers)
+    private val auth = AuthenticationManager(dbUsers, dbChannels)
     private val channelsManager = ChannelsManager(dbUsers, dbChannels)
 
 
@@ -52,7 +52,7 @@ class CourseAppImpl @Inject constructor(map: DatabaseMap) : CourseApp {
     }
 
     override fun numberOfActiveUsersInChannel(token: String, channel: String): Long {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        return channelsManager.numberOfActiveUsersInChannel(token, channel)
     }
 
     override fun numberOfTotalUsersInChannel(token: String, channel: String): Long {
