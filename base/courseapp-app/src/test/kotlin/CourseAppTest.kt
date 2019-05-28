@@ -239,9 +239,8 @@ class CourseAppTest {
         app.channelJoin(adminToken, "#TakeCare")
         app.channelPart(adminToken, "#TakeCare")
 
-        assertThrows<UserNotAuthorizedException> {
-            app.channelJoin(notAdminToken, "#TakeCare")
-        }
+        // non-admin can only join a non-existing channel
+        app.channelJoin(notAdminToken, "#TakeCare")
     }
 
     @Test
@@ -263,7 +262,7 @@ class CourseAppTest {
         val notAdminToken = app.login("yuval", "a weak password")
         app.login("victor", "big")
         app.channelJoin(adminToken, "#TakeCare")
-        
+
         assertThrows<UserNotAuthorizedException> {
             app.channelMakeOperator(notAdminToken, "#TakeCare", "victor")
         }
@@ -309,5 +308,92 @@ class CourseAppTest {
         app.channelMakeOperator(adminToken, "#TakeCare", "yuval")
 
         app.channelMakeOperator(otherToken, "#TakeCare", "victor")
+    }
+
+    @Test
+    internal fun `attempting to kick a member from a channel without operator privileges should throw UserNotAuthorizedException`() {
+        val adminToken = app.login("sahar", "a very strong password")
+        val otherToken = app.login("yuval", "a weak password")
+        app.makeAdministrator(adminToken, "yuval")
+
+        app.channelJoin(otherToken, "#TakeCare")
+        app.channelJoin(adminToken, "#TakeCare")
+
+        assertThrows<UserNotAuthorizedException> {
+            app.channelKick(adminToken, "#TakeCare", "yuval")
+        }
+    }
+
+    @Test
+    internal fun `attempting to kick from a channel a member that does not exist should throw NoSuchEntityException`() {
+        val adminToken = app.login("sahar", "a very strong password")
+        app.channelJoin(adminToken, "#TakeCare")
+
+        assertThrows<NoSuchEntityException> {
+            app.channelKick(adminToken, "#TakeCare", "yuval")
+        }
+    }
+
+    @Test
+    internal fun `attempting to kick from a channel a member who's not a member of the same channel should throw NoSuchEntityException`() {
+        val adminToken = app.login("sahar", "a very strong password")
+        val otherToken = app.login("yuval", "a weak password")
+        app.makeAdministrator(adminToken, "yuval")
+
+        app.channelJoin(adminToken, "#TakeCare")
+        app.channelJoin(otherToken, "#TakeCare2")
+
+        assertThrows<NoSuchEntityException> {
+            app.channelKick(adminToken, "#TakeCare", "yuval")
+        }
+    }
+
+    @Test
+    internal fun `operator can kick members from a channel`() {
+        val adminToken = app.login("sahar", "a very strong password")
+        val otherToken = app.login("yuval", "a weak password")
+        app.channelJoin(adminToken, "#TakeCare")
+        app.channelJoin(otherToken, "#TakeCare")
+
+        app.channelKick(adminToken, "#TakeCare", "yuval")
+
+        app.isUserInChannel(adminToken, "#TakeCare", "yuval")?.let { assertFalse(it) }
+    }
+
+    @Test
+    internal fun `attempting to kick a member from a channel with operator privileges for another channel should throw UserNotAuthorizedException`() {
+        val adminToken = app.login("sahar", "a very strong password")
+        val otherToken = app.login("yuval", "a weak password")
+        app.makeAdministrator(adminToken, "yuval")
+
+        app.channelJoin(adminToken, "#TakeCare")
+        app.channelJoin(otherToken, "#TakeCare2")
+
+        assertThrows<UserNotAuthorizedException> {
+            app.channelKick(adminToken, "#TakeCare2", "yuval")
+        }
+    }
+
+    @Test
+    internal fun `member can query the total number of members in the channel`() {
+        val adminToken = app.login("sahar", "a very strong password")
+        val token2 = app.login("yuval", "a weak password")
+        val token3 = app.login("victor", "big")
+        val channel = "#TakeCare"
+
+        app.channelJoin(adminToken, channel)
+        assertEquals(1, app.numberOfTotalUsersInChannel(adminToken, channel))
+
+        app.channelJoin(token2, channel)
+        assertEquals(2, app.numberOfTotalUsersInChannel(token2, channel))
+
+        app.channelJoin(token3, channel)
+        assertEquals(3, app.numberOfTotalUsersInChannel(token3, channel))
+
+        app.channelPart(token3, channel)
+        assertEquals(2, app.numberOfTotalUsersInChannel(token2, channel))
+
+        app.channelPart(token2, channel)
+        assertEquals(1, app.numberOfTotalUsersInChannel(adminToken, channel))
     }
 }

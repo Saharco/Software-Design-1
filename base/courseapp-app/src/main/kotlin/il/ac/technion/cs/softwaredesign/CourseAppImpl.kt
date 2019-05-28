@@ -44,11 +44,11 @@ class CourseAppImpl @Inject constructor(map: DatabaseMap) : CourseApp {
     }
 
     override fun channelKick(token: String, channel: String, username: String) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        channelsManager.channelKick(token, channel, username)
     }
 
     override fun isUserInChannel(token: String, channel: String, username: String): Boolean? {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        return channelsManager.isUserInChannel(token, channel, username)
     }
 
     override fun numberOfActiveUsersInChannel(token: String, channel: String): Long {
@@ -56,6 +56,6 @@ class CourseAppImpl @Inject constructor(map: DatabaseMap) : CourseApp {
     }
 
     override fun numberOfTotalUsersInChannel(token: String, channel: String): Long {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        return channelsManager.numberOfTotalUsersInChannel(token, channel)
     }
 }

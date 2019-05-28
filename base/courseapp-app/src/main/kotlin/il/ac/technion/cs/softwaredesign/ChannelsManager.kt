@@ -49,15 +49,12 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
             newChannelFlag = true
         }
 
-        var userChannels = usersRoot.document(tokenUsername)
-                .readCollection("channels")
-        if (userChannels == null)
-            userChannels = mutableListOf()
+        val userChannels = usersRoot.document(tokenUsername)
+                .readCollection("channels")?.toMutableList() ?: mutableListOf()
 
         // finish if user attempted joining a channel they're already members of
         if (userChannels.contains(channel)) return
 
-        userChannels = userChannels.toMutableList()
         userChannels.add(channel)
 
         usersRoot.document(tokenUsername)
@@ -67,7 +64,7 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
         if (!newChannelFlag) {
             val usersCount = channelsRoot.document(channel)
                     .read("users_count")!!.toInt() + 1
-            channelsRoot.document("channel")
+            channelsRoot.document(channel)
                     .set(Pair("users_count", usersCount.toString()))
                     .update()
         }
@@ -80,34 +77,7 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
         if (!isMemberOfChannel(tokenUsername, channel))
             throw NoSuchEntityException("user is not a member of the channel")
 
-        val userChannelsList = usersRoot.document(tokenUsername)
-                .readCollection("channels")!!.toMutableList()
-        userChannelsList.remove(channel)
-        usersRoot.document(tokenUsername)
-                .set("channels", userChannelsList)
-                .update()
-
-        val operators = channelsRoot.document(channel)
-                .readCollection("operators")?.toMutableList()
-
-        if (operators != null && operators.contains(tokenUsername)) {
-            operators.remove(tokenUsername)
-            channelsRoot.document(channel)
-                    .set("operators", operators)
-                    .update()
-        }
-
-        val usersCount = channelsRoot.document(channel)
-                .read("users_count")!!.toInt() - 1
-        if (usersCount == 0) {
-            // the last user has left the channel: delete the channel
-            channelsRoot.document(channel)
-                    .delete()
-        }
-
-        channelsRoot.document("channel")
-                .set(Pair("users_count", (usersCount).toString()))
-                .update()
+        expelChannelMember(tokenUsername, channel)
     }
 
     fun channelMakeOperator(token: String, channel: String, username: String) {
@@ -134,12 +104,79 @@ class ChannelsManager(private val dbUsers: Database, private val dbChannels: Dat
             throw NoSuchEntityException("given username is not a member in the channel")
 
         // all requirements are filled: appoint user to channel operator
+
         val operators = channelsRoot.document(channel)
                 .readCollection("operators")?.toMutableList() ?: mutableListOf()
         operators.add(username)
 
         channelsRoot.document(channel)
                 .set("operators", operators)
+                .update()
+    }
+
+    fun channelKick(token: String, channel: String, username: String) {
+        val tokenUsername = tokenToUser(token)
+        verifyChannelExists(channel)
+
+        if (!isOperator(tokenUsername, channel))
+            throw UserNotAuthorizedException("must have operator privileges")
+
+        if (!isMemberOfChannel(username, channel))
+            throw NoSuchEntityException("provided username is not a member of this channel")
+
+        expelChannelMember(username, channel)
+    }
+
+    fun isUserInChannel(token: String, channel: String, username: String): Boolean? {
+        val tokenUsername = tokenToUser(token)
+        verifyChannelExists(channel)
+        if (!isAdmin(tokenUsername) && !isMemberOfChannel(tokenUsername, channel))
+            throw UserNotAuthorizedException("must be an admin or a member of the channel")
+
+        if (!usersRoot.document(username)
+                        .exists())
+            return null
+        return isMemberOfChannel(username, channel)
+    }
+
+    fun numberOfTotalUsersInChannel(token: String, channel: String): Long {
+        val tokenUsername = tokenToUser(token)
+        verifyChannelExists(channel)
+        if (!isAdmin(tokenUsername) && !isMemberOfChannel(tokenUsername, channel))
+            throw UserNotAuthorizedException("must be an admin or a member of the channel")
+
+        return channelsRoot.document(channel)
+                .read("users_count")!!.toLong()
+    }
+
+    private fun expelChannelMember(username: String, channel: String) {
+        val userChannelsList = usersRoot.document(username)
+                .readCollection("channels")?.toMutableList() ?: mutableListOf()
+        userChannelsList.remove(channel)
+        usersRoot.document(username)
+                .set("channels", userChannelsList)
+                .update()
+
+        val operators = channelsRoot.document(channel)
+                .readCollection("operators")?.toMutableList() ?: mutableListOf()
+
+        if (operators.contains(username)) {
+            operators.remove(username)
+            channelsRoot.document(channel)
+                    .set("operators", operators)
+                    .update()
+        }
+
+        val usersCount = channelsRoot.document(channel)
+                .read("users_count")!!.toInt() - 1
+        if (usersCount == 0) {
+            // the last user has left the channel: delete the channel
+            channelsRoot.document(channel)
+                    .delete()
+        }
+
+        channelsRoot.document(channel)
+                .set(Pair("users_count", usersCount.toString()))
                 .update()
     }
 
