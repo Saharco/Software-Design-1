@@ -7,10 +7,10 @@ import il.ac.technion.cs.softwaredesign.database.DatabaseMap
  * Implementation of CourseApp functionality
  * @see CourseApp
  */
-class CourseAppImpl @Inject constructor(map: DatabaseMap) : CourseApp {
+class CourseAppImpl @Inject constructor(mapper: DatabaseMap) : CourseApp {
 
-    private val dbUsers = map().getValue("users")
-    private val dbChannels = map().getValue("channels")
+    private val dbUsers = mapper().getValue("users")
+    private val dbChannels = mapper().getValue("channels")
     private val auth = AuthenticationManager(dbUsers, dbChannels)
     private val channelsManager = ChannelsManager(dbUsers, dbChannels)
 

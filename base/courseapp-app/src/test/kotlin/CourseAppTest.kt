@@ -19,8 +19,6 @@ class CourseAppTest {
     }
 
     private val app = injector.getInstance<CourseApp>()
-//    private val courseAppStatistics = injector.getInstance<CourseAppStatistics>()
-
 
     @Test
     internal fun `user successfully logged in after login`() {

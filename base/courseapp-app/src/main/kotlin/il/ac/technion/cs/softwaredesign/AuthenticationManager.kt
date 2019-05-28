@@ -45,19 +45,6 @@ class AuthenticationManager(private val dbUsers: Database, private val dbChannel
         val token = generateToken(username)
         userDocument.set(Pair("token", token))
 
-        if (storedPassword == null) {
-            userDocument.set(Pair("password", password))
-
-            val usersCountDocument = metadataRoot.document("users_data")
-            val usersCount = usersCountDocument.read("users_count")?.toInt()?.plus(1)
-                    ?: 1
-
-            if (usersCount == 1) userDocument.set(Pair("isAdmin", "true"))
-
-            usersCountDocument.set(Pair("users_count", usersCount.toString()))
-                    .update()
-        }
-
         updateLoginData(userDocument, storedPassword, password)
 
         tokensRoot.document(token)
@@ -65,39 +52,6 @@ class AuthenticationManager(private val dbUsers: Database, private val dbChannel
                 .write()
 
         return token
-    }
-
-    private fun updateLoginData(userDocument: DocumentReference, storedPassword: String?,
-                                enteredPassword: String) {
-        if (storedPassword == null) {
-            userDocument.set(Pair("password", enteredPassword))
-
-            val usersCountDocument = metadataRoot.document("users_data")
-            val usersCount = usersCountDocument.read("users_count")?.toInt()?.plus(1)
-                    ?: 1
-
-            if (usersCount == 1) userDocument.set(Pair("isAdmin", "true"))
-
-            usersCountDocument.set(Pair("users_count", usersCount.toString()))
-                    .update()
-        }
-        val usersCountDocument = metadataRoot.document("users_data")
-        val onlineUsersCount = usersCountDocument.read("online_users_count")?.toInt()?.plus(1)
-                ?: 1
-        usersCountDocument.set(Pair("online_users_count", onlineUsersCount.toString()))
-                .update()
-
-        val channels = userDocument.readCollection("channels")?.toMutableList()
-                ?: mutableListOf()
-        for (channel in channels) {
-            val newOnlineUsersCount = channelsRoot.document(channel)
-                    .read("online_users_count")?.toLong()?.plus(1) ?: 1
-            channelsRoot.document(channel)
-                    .set(Pair("online_users_count", newOnlineUsersCount.toString()))
-                    .update()
-        }
-
-        userDocument.update()
     }
 
     fun performLogout(token: String) {
@@ -109,26 +63,6 @@ class AuthenticationManager(private val dbUsers: Database, private val dbChannel
 
         val userDocument = usersRoot.document(username)
         updateLogoutData(userDocument)
-    }
-
-    private fun updateLogoutData(userDocument: DocumentReference) {
-        val usersCountDocument = metadataRoot.document("users_data")
-        val onlineUsersCount = usersCountDocument.read("online_users_count")?.toInt()?.minus(1)
-                ?: 0
-        usersCountDocument.set(Pair("online_users_count", onlineUsersCount.toString()))
-                .update()
-
-        val channels = userDocument.readCollection("channels")?.toMutableList()
-                ?: mutableListOf()
-        for (channel in channels) {
-            val newOnlineUsersCount = channelsRoot.document(channel)
-                    .read("online_users_count")?.toLong()?.minus(1) ?: 0
-            channelsRoot.document(channel)
-                    .set(Pair("online_users_count", newOnlineUsersCount.toString()))
-                    .update()
-        }
-
-        userDocument.delete(listOf("token"))
     }
 
     fun isUserLoggedIn(token: String, username: String): Boolean? {
@@ -164,10 +98,89 @@ class AuthenticationManager(private val dbUsers: Database, private val dbChannel
                 .update()
     }
 
+    fun getTotalUsers(): Long {
+        return metadataRoot.document("users_data")
+                .read("users_count")?.toLong() ?: 0
+    }
+
+    fun getLoggedInUsers(): Long {
+        return metadataRoot.document("users_data")
+                .read("online_users_count")?.toLong() ?: 0
+    }
+
     /**
      * Generates a unique token from a given username
      */
     private fun generateToken(username: String): String {
         return "$username+${LocalDateTime.now()}"
+    }
+
+    /**
+     * Updates the following information:
+     *  - number of logged in users in the system,
+     *  - number of users in the system,
+     *  - number of logged in users in each channel that the user is a member of,
+     *  - administrator privilege is given to the user if they're the first user in the system,
+     *  - password is written for the user if it's their first time logging in
+     *
+     */
+    private fun updateLoginData(userDocument: DocumentReference, storedPassword: String?,
+                                enteredPassword: String) {
+        if (storedPassword == null) {
+            userDocument.set(Pair("password", enteredPassword))
+
+            val usersCountDocument = metadataRoot.document("users_data")
+            val usersCount = usersCountDocument.read("users_count")?.toInt()?.plus(1)
+                    ?: 1
+
+            if (usersCount == 1) userDocument.set(Pair("isAdmin", "true"))
+
+            usersCountDocument.set(Pair("users_count", usersCount.toString()))
+                    .update()
+        }
+        val usersCountDocument = metadataRoot.document("users_data")
+        val onlineUsersCount = usersCountDocument.read("online_users_count")?.toInt()?.plus(1)
+                ?: 1
+        usersCountDocument.set(Pair("online_users_count", onlineUsersCount.toString()))
+                .update()
+
+        val channels = userDocument.readCollection("channels")?.toMutableList()
+                ?: mutableListOf()
+        for (channel in channels) {
+            val newOnlineUsersCount = channelsRoot.document(channel)
+                    .read("online_users_count")?.toLong()?.plus(1) ?: 1
+            channelsRoot.document(channel)
+                    .set(Pair("online_users_count", newOnlineUsersCount.toString()))
+                    .update()
+        }
+
+        userDocument.update()
+    }
+
+    /**
+     * Updates the following information:
+     *  - number of logged in users in the system,
+     *  - number of users in the system,
+     *  - number of logged in users in each channel that the user is a member of,
+     *  - invalidating user token
+     */
+    private fun updateLogoutData(userDocument: DocumentReference) {
+        val usersCountDocument = metadataRoot.document("users_data")
+        val onlineUsersCount = usersCountDocument.read("online_users_count")?.toInt()?.minus(1)
+                ?: 0
+        usersCountDocument.set(Pair("online_users_count", onlineUsersCount.toString()))
+                .update()
+
+        val channels = userDocument.readCollection("channels")?.toMutableList()
+                ?: mutableListOf()
+        for (channel in channels) {
+            val newOnlineUsersCount = channelsRoot.document(channel)
+                    .read("online_users_count")?.toLong()?.minus(1) ?: 0
+            channelsRoot.document(channel)
+                    .set(Pair("online_users_count", newOnlineUsersCount.toString()))
+                    .update()
+        }
+
+        userDocument.delete(listOf("token"))
     }
 }
