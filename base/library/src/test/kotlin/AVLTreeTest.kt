@@ -46,7 +46,6 @@ class AVLTreeTest {
         for (i in 0..9) {
             tree.delete(("yuval" + i).toByteArray(charset))
             assertEquals(null, tree.search(("yuval" + i).toByteArray(charset)))
-            assertEquals(tree.size(), 9 - i)
         }
         tree.printTree()
         //tree.delete("yuval3".toByteArray(charset))

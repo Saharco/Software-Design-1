@@ -10,7 +10,6 @@ import java.util.ArrayList
 import il.ac.technion.cs.softwaredesign.storage.SecureStorage
 
 var charset = Charsets.UTF_8
-
 public fun updateTree(storage: SecureStorage, value: String, newPrimaryKey: Int, oldPrimaryKey: Int,
                       secondaryKey: String, isDelete: Boolean = false) {
     val tree = AVLTree(storage)
@@ -152,7 +151,9 @@ class AVLNode(var key: ByteArray, var value: ByteArray,
         if (list.size == k) return
         getRight()?.topK(list, k)
         if (list.size == k) return
-        list.add(value.toString(charset))
+        if (!value.contentEquals("null".toByteArray(charset))) {
+            list.add(value.toString(charset))
+        }
         if (list.size == k) return
         getLeft()?.topK(list, k)
     }
@@ -211,9 +212,9 @@ class AVLTree(val storage: SecureStorage) {
         if (node == null) {
             return AVLNode(key, value, storage = storage)
         }
-        if (key.toString(charset) < node.key.toString(charset)) {
+        if (node.key.toString(charset) > key.toString(charset)) {
             node.setLeft(insert(key, value, node.getLeft()))
-        } else {
+        } else if (node.key.toString(charset) < key.toString(charset)){
             node.setRight(insert(key, value, node.getRight()))
         }
         node.height = 1 + max(height(node.getLeft()), height(node.getRight()))
@@ -246,56 +247,47 @@ class AVLTree(val storage: SecureStorage) {
         return node
     }
 
-    fun delete(key: ByteArray): AVLNode? {
-        return delete(root, key)
+    fun delete(key: ByteArray) {
+        delete(root, key)
     }
 
-    private fun delete(node: AVLNode?, key: ByteArray): AVLNode? {
-        if (node == null) {
-            return null
-        }
-        if (key.toString(charset) > node.key.toString(charset)) {
-            node.setRight(delete(node.getRight(), key))
-            return node
-        } else if (key.toString(charset) < node.key.toString(charset)) {
-            node.setLeft(delete(node.getLeft(), key))
-            return node
-        } else {
-            // node was found
-            if (node.getLeft() == null) {
-                if (node.getRight() == null) {
-                    return null
-                }
-                return node.getRight()
+    private fun delete(node: AVLNode?, key: ByteArray) {
+        var curr = node
+        var result: AVLNode? = null
+        while (curr != null) {
+            if (curr.key.toString(charset) > key.toString(charset)) {
+                curr = curr.getLeft()
+            } else if (curr.key.toString(charset) < key.toString(charset)) {
+                curr = curr.getRight()
+            } else {
+                result = curr
+                break
             }
-            if (node.getRight() == null) {
-                return node.getLeft()
-            }
-            val succ = getSucc(node)
-            return succ
         }
+        result?.value = "null".toByteArray(charset)
+        result?.applyChanges()
     }
 
     //  the tree has 2 children so the function is OK
     /**
      * returns the successor subtree and deletes it from the tree
      */
-    private fun getSucc(node: AVLNode): AVLNode? {
-        var prev = node
-        var curr = node.getRight()!!
-        while (curr.getLeft() != null) {
-            prev = curr
-            curr = curr.getLeft()!!
-        }
-        if (prev.key.toString(charset) == node.key.toString(charset)) {
-            curr.setLeft(node.getLeft())
-            return curr
-        }
-        prev.setLeft(null)
-        curr.setLeft(node.getLeft())
-        curr.setRight(node.getRight())
-        return curr
-    }
+//    private fun getSucc(node: AVLNode): AVLNode? {
+//        var prev = node
+//        var curr = node.getRight()!!
+//        while (curr.getLeft() != null) {
+//            prev = curr
+//            curr = curr.getLeft()!!
+//        }
+//        if (prev.key.toString(charset) == node.key.toString(charset)) {
+//            curr.setLeft(node.getLeft())
+//            return curr
+//        }
+//        prev.setLeft(null)
+//        curr.setLeft(node.getLeft())
+//        curr.setRight(node.getRight())
+//        return curr
+//    }
 
 
     private fun minValueNode(node: AVLNode): AVLNode {
@@ -351,6 +343,9 @@ class AVLTree(val storage: SecureStorage) {
                 result = curr.value
                 break
             }
+        }
+        if (result?.toString(charset) == "null") {
+            return null
         }
         return result
     }
