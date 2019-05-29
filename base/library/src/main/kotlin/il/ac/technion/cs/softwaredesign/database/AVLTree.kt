@@ -160,20 +160,23 @@ class AVLNode(var key: ByteArray, var value: ByteArray,
 class AVLTree(val storage: SecureStorage) {
 
     private val gson = Gson()
-    var root: AVLNode?
+    private val parser = JsonParser()
+    var root: AVLNode? = null
 
     init {
-        val parser = JsonParser()
-        val array = parser.parse(storage.read("root".toByteArray(charset))?.toString(charset)).asJsonArray
-        if (array != null) {
-            val key = gson.fromJson(array.get(0), ByteArray::class.java)
-            val value = gson.fromJson(array.get(1), ByteArray::class.java)
-            val left = gson.fromJson(array.get(2), ByteArray::class.java)
-            val right = gson.fromJson(array.get(3), ByteArray::class.java)
-            val height = gson.fromJson(array.get(4), Int::class.java)
-            root = AVLNode(key, value, left, right, height, storage)
-        } else {
+        val rootJson = storage.read("root".toByteArray(charset))?.toString(charset)
+        if (rootJson == null) {
             root = null
+        } else {
+            val array = parser.parse(rootJson).asJsonArray
+            val rootKey = gson.fromJson(array.get(0), ByteArray::class.java)
+            val array2 = parser.parse(storage.read(rootKey!!)!!.toString(charset)).asJsonArray
+            val key = gson.fromJson(array2.get(0), ByteArray::class.java)
+            val value = gson.fromJson(array2.get(1), ByteArray::class.java)
+            val left = gson.fromJson(array2.get(2), ByteArray::class.java)
+            val right = gson.fromJson(array2.get(3), ByteArray::class.java)
+            val height = gson.fromJson(array2.get(4), Int::class.java)
+            root = AVLNode(key, value, left, right, height, storage)
         }
     }
 
@@ -185,13 +188,10 @@ class AVLTree(val storage: SecureStorage) {
     public fun insert(key: ByteArray, value: ByteArray) {
         root = insert(key, value, root)
         val collection = ArrayList<Any?>()
-        collection.add("root".toByteArray(charset))
-        collection.add(root?.value)
-        collection.add(root?.left)
-        collection.add(root?.right)
-        collection.add(root?.height)
+        collection.add(root!!.key)
         val json = gson.toJson(collection)
         storage.write("root".toByteArray(charset), json.toByteArray(charset))
+        root!!.applyChanges()
     }
 
     private fun height(node: AVLNode?): Int {
