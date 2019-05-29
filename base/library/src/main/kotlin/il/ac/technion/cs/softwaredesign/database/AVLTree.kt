@@ -9,6 +9,25 @@ import com.google.gson.JsonParser
 import java.util.ArrayList
 import il.ac.technion.cs.softwaredesign.storage.SecureStorage
 
+fun compareKeys(key1: ByteArray, key2: ByteArray): Int {
+    val key1String = key1.toString(charset)
+    val key2String = key2.toString(charset)
+    val primary1 = key1String.substring(0, 7)
+    val secondary1 = key1String.substring(7)
+    val primary2 = key2String.substring(0, 7)
+    val secondary2 = key2String.substring(7)
+    if (primary1 > primary2) {
+        return 1
+    } else if (primary1 < primary2) {
+        return -1
+    }
+    if (secondary1 < secondary2)
+        return 1
+    else if (secondary2 < secondary1)
+        return -1
+    return 0
+}
+
 var charset = Charsets.UTF_8
 public fun updateTree(storage: SecureStorage, value: String, newPrimaryKey: Int, oldPrimaryKey: Int,
                       secondaryKey: String, isDelete: Boolean = false) {
@@ -212,9 +231,10 @@ class AVLTree(val storage: SecureStorage) {
         if (node == null) {
             return AVLNode(key, value, storage = storage)
         }
-        if (node.key.toString(charset) > key.toString(charset)) {
+        val cmp = compareKeys(node.key, key)
+        if (cmp > 0) {
             node.setLeft(insert(key, value, node.getLeft()))
-        } else if (node.key.toString(charset) < key.toString(charset)){
+        } else if (cmp < 0) {
             node.setRight(insert(key, value, node.getRight()))
         }
         node.height = 1 + max(height(node.getLeft()), height(node.getRight()))
@@ -226,21 +246,23 @@ class AVLTree(val storage: SecureStorage) {
     private fun balance(node: AVLNode, key: ByteArray): AVLNode {
         //balance
         val balance = balanceFactor(node)
+        val cmpLeft = compareKeys(node.getLeft()!!.key, key)
+        val cmpRight = compareKeys(node.getRight()!!.key, key)
         // Left Left
-        if (balance > 1 && key.toString(charset) < node.getLeft()!!.key.toString(charset)) {
+        if (balance > 1 && cmpLeft > 0) {
             return rotateRight(node)
         }
         // Right Right
-        if (balance < -1 && key.toString(charset) > node.getRight()!!.key.toString(charset)) {
+        if (balance < -1 && cmpRight < 0) {
             return rotateLeft(node)
         }
         // Left Right
-        if (balance > 1 && key.toString(charset) > node.getLeft()!!.key.toString(charset)) {
+        if (balance > 1 && cmpLeft < 0) {
             node.setLeft(rotateLeft(node.getLeft()!!))
             return rotateRight(node)
         }
         // Right Left
-        if (balance < -1 && key.toString(charset) < node.getRight()!!.key.toString(charset)) {
+        if (balance < -1 && cmpRight > 0) {
             node.setRight(rotateRight(node.getRight()!!))
             return rotateLeft(node)
         }
@@ -255,9 +277,10 @@ class AVLTree(val storage: SecureStorage) {
         var curr = node
         var result: AVLNode? = null
         while (curr != null) {
-            if (curr.key.toString(charset) > key.toString(charset)) {
+            val cmp = compareKeys(curr.key, key)
+            if (cmp > 0) {
                 curr = curr.getLeft()
-            } else if (curr.key.toString(charset) < key.toString(charset)) {
+            } else if (cmp < 0) {
                 curr = curr.getRight()
             } else {
                 result = curr
@@ -266,36 +289,6 @@ class AVLTree(val storage: SecureStorage) {
         }
         result?.value = "null".toByteArray(charset)
         result?.applyChanges()
-    }
-
-    //  the tree has 2 children so the function is OK
-    /**
-     * returns the successor subtree and deletes it from the tree
-     */
-//    private fun getSucc(node: AVLNode): AVLNode? {
-//        var prev = node
-//        var curr = node.getRight()!!
-//        while (curr.getLeft() != null) {
-//            prev = curr
-//            curr = curr.getLeft()!!
-//        }
-//        if (prev.key.toString(charset) == node.key.toString(charset)) {
-//            curr.setLeft(node.getLeft())
-//            return curr
-//        }
-//        prev.setLeft(null)
-//        curr.setLeft(node.getLeft())
-//        curr.setRight(node.getRight())
-//        return curr
-//    }
-
-
-    private fun minValueNode(node: AVLNode): AVLNode {
-        var current: AVLNode? = node
-        while (current!!.getLeft() != null) {
-            current = current.getLeft()
-        }
-        return current
     }
 
     private fun balanceFactor(node: AVLNode?): Int {
@@ -335,9 +328,10 @@ class AVLTree(val storage: SecureStorage) {
         var curr = node
         var result: ByteArray? = null
         while (curr != null) {
-            if (curr.key.toString(charset) > key.toString(charset)) {
+            val cmp = compareKeys(curr.key, key)
+            if (cmp > 0) {
                 curr = curr.getLeft()
-            } else if (curr.key.toString(charset) < key.toString(charset)) {
+            } else if (cmp < 0) {
                 curr = curr.getRight()
             } else {
                 result = curr.value
