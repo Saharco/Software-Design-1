@@ -1,6 +1,8 @@
 package il.ac.technion.cs.softwaredesign
 
 import il.ac.technion.cs.softwaredesign.database.Database
+import il.ac.technion.cs.softwaredesign.database.treeTopK
+import il.ac.technion.cs.softwaredesign.database.updateTree
 import il.ac.technion.cs.softwaredesign.exceptions.InvalidTokenException
 import il.ac.technion.cs.softwaredesign.exceptions.NameFormatException
 import il.ac.technion.cs.softwaredesign.exceptions.NoSuchEntityException
@@ -79,10 +81,12 @@ class ChannelsManager(private val dbMapper: DatabaseMapper) {
                 .read("creation_time")!!
         val usersChannelsCount = userChannels.size
 
-        updateTree(channelsByUsers, channel, usersCount, channelCreationTime, usersCount == 0)
-        updateTree(channelsByActiveUsers, channel, onlineUsersCount, channelCreationTime,
-                onlineUsersCount == 0)
-        updateTree(usersByChannels, tokenUsername, usersChannelsCount, userCreationTime)
+        updateTree(channelsByUsers, channel, usersCount, usersCount - 1,
+                channelCreationTime)
+        updateTree(channelsByActiveUsers, channel, onlineUsersCount, onlineUsersCount - 1,
+                channelCreationTime)
+        updateTree(usersByChannels, tokenUsername, usersChannelsCount,
+                usersChannelsCount - 1, userCreationTime)
     }
 
     fun channelPart(token: String, channel: String) {
@@ -236,9 +240,11 @@ class ChannelsManager(private val dbMapper: DatabaseMapper) {
             channelDeleted = true
         }
 
+        var isUserLoggedIn = false
         if (!channelDeleted) {
             if (usersRoot.document(username)
                             .read("token") != null) {
+                isUserLoggedIn = true
                 onlineUsersCount = channelsRoot.document(channel)
                         .read("online_users_count")?.toInt()?.minus(1) ?: 0
 
@@ -253,16 +259,19 @@ class ChannelsManager(private val dbMapper: DatabaseMapper) {
         }
 
         val channelCreationTime = channelsRoot.document(channel)
-                .read("creation_time")!!
+                .read("creation_time") ?: "deleted channel anyway"
         val userCreationTime = usersRoot.document(username)
                 .read("creation_time")!!
         val usersChannelsCount = userChannels.size
 
-
-        updateTree(channelsByUsers, channel, usersCount, channelCreationTime, usersCount == 0)
-        updateTree(channelsByActiveUsers, channel, onlineUsersCount, channelCreationTime,
-                onlineUsersCount == 0)
-        updateTree(usersByChannels, username, usersChannelsCount, userCreationTime)
+        val newOnlineUsersCount = if (isUserLoggedIn) onlineUsersCount - 1 else onlineUsersCount
+        updateTree(channelsByUsers, channel, usersCount - 1, usersCount,
+                channelCreationTime, usersCount <= 0)
+        updateTree(channelsByActiveUsers, channel, newOnlineUsersCount, onlineUsersCount,
+                channelCreationTime,
+                onlineUsersCount <= 0)
+        updateTree(usersByChannels, username, usersChannelsCount - 1,
+                usersChannelsCount, userCreationTime)
     }
 
     /**
