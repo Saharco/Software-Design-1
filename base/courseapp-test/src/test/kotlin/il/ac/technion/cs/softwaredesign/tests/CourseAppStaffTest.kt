@@ -83,7 +83,7 @@ class CourseAppStaffTest {
         courseApp.channelMakeOperator(adminToken, "#test", "matan")
 
         assertThat(runWithTimeout(ofSeconds(10)) {
-            courseApp.isUserInChannel(adminToken, "#mychannel", "matan")
+            courseApp.isUserInChannel(adminToken, "#test", "matan")
         },
                 isTrue)
     }
@@ -149,7 +149,7 @@ class CourseAppStaffTest {
     }
 
     @Test
-    fun `top 10 channel list does secondary sorting by name`() {
+    fun `top 10 channel list does secondary sorting by creation order`() {
         val adminToken = courseApp.login("admin", "admin")
         val nonAdminToken = courseApp.login("matan", "4321")
         courseApp.makeAdministrator(adminToken, "matan")
@@ -159,7 +159,7 @@ class CourseAppStaffTest {
         courseApp.channelJoin(nonAdminToken, "#other")
 
         runWithTimeout(ofSeconds(10)) {
-            assertThat(courseAppStatistics.top10ChannelsByUsers(), containsElementsInOrder("#other", "#test"))
+            assertThat(courseAppStatistics.top10ChannelsByUsers(), containsElementsInOrder("#test", "#other"))
         }
     }
 
@@ -180,7 +180,7 @@ class CourseAppStaffTest {
     }
 
     @Test
-    fun `top 10 user list does secondary sorting by name`() {
+    fun `top 10 user list does secondary sorting by registration order`() {
         val adminToken = courseApp.login("admin", "admin")
         val nonAdminToken = courseApp.login("matan", "4321")
         courseApp.makeAdministrator(adminToken, "matan")

@@ -79,8 +79,9 @@ class ChannelsManager(private val dbMapper: DatabaseMapper) {
                 .read("creation_time")!!
         val usersChannelsCount = userChannels.size
 
-        updateTree(channelsByUsers, channel, usersCount, channelCreationTime)
-        updateTree(channelsByActiveUsers, channel, onlineUsersCount, channelCreationTime)
+        updateTree(channelsByUsers, channel, usersCount, channelCreationTime, usersCount == 0)
+        updateTree(channelsByActiveUsers, channel, onlineUsersCount, channelCreationTime,
+                onlineUsersCount == 0)
         updateTree(usersByChannels, tokenUsername, usersChannelsCount, userCreationTime)
     }
 
@@ -257,8 +258,10 @@ class ChannelsManager(private val dbMapper: DatabaseMapper) {
                 .read("creation_time")!!
         val usersChannelsCount = userChannels.size
 
-        updateTree(channelsByUsers, channel, usersCount, channelCreationTime)
-        updateTree(channelsByActiveUsers, channel, onlineUsersCount, channelCreationTime)
+
+        updateTree(channelsByUsers, channel, usersCount, channelCreationTime, usersCount == 0)
+        updateTree(channelsByActiveUsers, channel, onlineUsersCount, channelCreationTime,
+                onlineUsersCount == 0)
         updateTree(usersByChannels, username, usersChannelsCount, userCreationTime)
     }
 

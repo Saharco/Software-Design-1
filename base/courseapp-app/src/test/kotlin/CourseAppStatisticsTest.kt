@@ -58,4 +58,15 @@ class CourseAppStatisticsTest {
         app.login("sahar", "a very strong password")
         assertEquals(1, statistics.loggedInUsers())
     }
+
+    @Test
+    internal fun `querying top 10 when there are no channels should return an empty list`() {
+        val list1 = statistics.top10UsersByChannels()
+        val list2 = statistics.top10ActiveChannelsByUsers()
+        val list3 = statistics.top10UsersByChannels()
+
+        assertEquals(0, list1.size)
+        assertEquals(0, list2.size)
+        assertEquals(0, list3.size)
+    }
 }
