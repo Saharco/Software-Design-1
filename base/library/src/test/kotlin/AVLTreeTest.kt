@@ -9,19 +9,19 @@ class AVLTreeTest {
     internal fun `basic test` () {
         val tree = AVLTree(SecureStorageMock())
         tree.insert("yuval".toByteArray(charset), "nahon".toByteArray(charset))
-        println(tree)
-        println(tree.root?.size())
+        //println(tree)
+        //println(tree.root?.size())
         tree.insert("sahar".toByteArray(charset), "cohen".toByteArray(charset))
-        println(tree)
-        println(tree.root?.size())
+        //println(tree)
+        //println(tree.root?.size())
         tree.insert("yuval1".toByteArray(charset), "nahon".toByteArray(charset))
-        println(tree)
-        println(tree.root?.size())
+        //println(tree)
+        //println(tree.root?.size())
         tree.insert("sahar1".toByteArray(charset), "cohen".toByteArray(charset))
-        println(tree)
-        println(tree.root?.size())
+        //println(tree)
+        //println(tree.root?.size())
         tree.insert("sahar2".toByteArray(charset), "cohen".toByteArray(charset))
-        println(tree)
+        //println(tree)
         println(tree.root?.size())
     }
     @Test
@@ -34,7 +34,6 @@ class AVLTreeTest {
             assertEquals(tree.search("yuval$i".toByteArray(charset))?.toString(charset), "nahon$i")
         }
         assertEquals(tree.size(), 101)
-        println(tree.root?.height)
         assertEquals(tree.search("yuval2".toByteArray(charset))?.toString(charset), "nahon2")
     }
     @Test
@@ -44,7 +43,12 @@ class AVLTreeTest {
             tree.insert(("yuval" + i).toByteArray(charset), ("nahon" + i).toByteArray(charset))
             assertEquals(i + 1, tree.size())
         }
-
+        for (i in 0..9) {
+            tree.delete(("yuval" + i).toByteArray(charset))
+            assertEquals(null, tree.search(("yuval" + i).toByteArray(charset)))
+            assertEquals(tree.size(), 9 - i)
+        }
+        tree.printTree()
         //tree.delete("yuval3".toByteArray(charset))
         //tree.delete("yuval4".toByteArray(charset))
         //tree.delete("yuval6".toByteArray(charset))

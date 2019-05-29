@@ -151,7 +151,9 @@ class AVLNode(var key: ByteArray, var value: ByteArray,
     fun topK(list: MutableList<String>, k: Int) {
         if (list.size == k) return
         getRight()?.topK(list, k)
+        if (list.size == k) return
         list.add(value.toString(charset))
+        if (list.size == k) return
         getLeft()?.topK(list, k)
     }
 }
@@ -258,26 +260,27 @@ class AVLTree(val storage: SecureStorage) {
         } else if (key.toString(charset) < node.key.toString(charset)) {
             node.setLeft(delete(node.getLeft(), key))
             return node
-        }
-        // node was found
-        if (node.getLeft() == null) {
-            if (node.getRight() == null) {
-                return null
+        } else {
+            // node was found
+            if (node.getLeft() == null) {
+                if (node.getRight() == null) {
+                    return null
+                }
+                return node.getRight()
             }
-            return node.getRight()
+            if (node.getRight() == null) {
+                return node.getLeft()
+            }
+            val succ = getSucc(node)
+            return succ
         }
-        if (node.getRight() == null) {
-            return node.getLeft()
-        }
-        val succ = getSucc(node)
-        node.key = succ.key
-        node.value = succ.value
-        node.applyChanges()
-        return node
     }
 
     //  the tree has 2 children so the function is OK
-    private fun getSucc(node: AVLNode): AVLNode {
+    /**
+     * returns the successor subtree and deletes it from the tree
+     */
+    private fun getSucc(node: AVLNode): AVLNode? {
         var prev = node
         var curr = node.getRight()!!
         while (curr.getLeft() != null) {
@@ -285,10 +288,12 @@ class AVLTree(val storage: SecureStorage) {
             curr = curr.getLeft()!!
         }
         if (prev.key.toString(charset) == node.key.toString(charset)) {
-            prev.setRight(null)
+            curr.setLeft(node.getLeft())
             return curr
         }
         prev.setLeft(null)
+        curr.setLeft(node.getLeft())
+        curr.setRight(node.getRight())
         return curr
     }
 
