@@ -264,14 +264,14 @@ class ChannelsManager(private val dbMapper: DatabaseMapper) {
                 .read("creation_time")!!
         val usersChannelsCount = userChannels.size
 
-        val newOnlineUsersCount = if (isUserLoggedIn) onlineUsersCount - 1 else onlineUsersCount
-        updateTree(channelsByUsers, channel, usersCount - 1, usersCount,
+        val prevOnlineUsersCount = if (isUserLoggedIn) onlineUsersCount + 1 else onlineUsersCount
+        updateTree(channelsByUsers, channel, usersCount, usersCount + 1,
                 channelCreationTime, usersCount <= 0)
-        updateTree(channelsByActiveUsers, channel, newOnlineUsersCount, onlineUsersCount,
+        updateTree(channelsByActiveUsers, channel, onlineUsersCount, prevOnlineUsersCount,
                 channelCreationTime,
                 onlineUsersCount <= 0)
-        updateTree(usersByChannels, username, usersChannelsCount - 1,
-                usersChannelsCount, userCreationTime)
+        updateTree(usersByChannels, username, usersChannelsCount,
+                usersChannelsCount + 1, userCreationTime)
     }
 
     /**
