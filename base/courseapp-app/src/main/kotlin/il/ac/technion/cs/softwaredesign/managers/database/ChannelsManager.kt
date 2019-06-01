@@ -1,4 +1,4 @@
-package il.ac.technion.cs.softwaredesign
+package il.ac.technion.cs.softwaredesign.managers.database
 
 import il.ac.technion.cs.softwaredesign.database.Database
 import il.ac.technion.cs.softwaredesign.exceptions.InvalidTokenException
@@ -217,6 +217,9 @@ class ChannelsManager(private val dbMapper: DatabaseMapper) {
             throw UserNotAuthorizedException("must be an admin or a member of the channel")
     }
 
+    /**
+     * Kicks a user from a channel, updates relevant storage information
+     */
     private fun expelChannelMember(username: String, channel: String) {
         val userChannels = usersRoot.document(username)
                 .readList("channels")?.toMutableList() ?: mutableListOf()

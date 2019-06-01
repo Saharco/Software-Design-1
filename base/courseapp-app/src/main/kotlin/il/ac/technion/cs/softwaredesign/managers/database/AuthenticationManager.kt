@@ -1,4 +1,4 @@
-package il.ac.technion.cs.softwaredesign
+package il.ac.technion.cs.softwaredesign.managers.database
 
 import il.ac.technion.cs.softwaredesign.database.Database
 import il.ac.technion.cs.softwaredesign.database.DocumentReference
@@ -44,7 +44,7 @@ class AuthenticationManager(private val dbMapper: DatabaseMapper) {
         val token = generateToken(username)
         userDocument.set(Pair("token", token))
 
-        updateLoginData(userDocument, storedPassword, password)
+        updateLoginData(userDocument, storedPassword, password, username)
 
         tokensRoot.document(token)
                 .set(Pair("username", username))
@@ -129,7 +129,7 @@ class AuthenticationManager(private val dbMapper: DatabaseMapper) {
      *
      */
     private fun updateLoginData(userDocument: DocumentReference, storedPassword: String?,
-                                enteredPassword: String) {
+                                enteredPassword: String, username: String) {
         if (storedPassword == null) {
             val creationCounter = metadataRoot.document("users_data")
                     .read("creation_counter")?.toInt()?.plus(1) ?: 1
@@ -149,6 +149,8 @@ class AuthenticationManager(private val dbMapper: DatabaseMapper) {
 
             usersCountDocument.set(Pair("users_count", usersCount.toString()))
                     .update()
+
+            updateTree(dbMapper.getStorage("users_by_channels"), username, 0, 0, creationCounter)
         }
         val usersCountDocument = metadataRoot.document("users_data")
         val onlineUsersCount = usersCountDocument.read("online_users_count")?.toInt()?.plus(1)
@@ -159,11 +161,17 @@ class AuthenticationManager(private val dbMapper: DatabaseMapper) {
         val channels = userDocument.readList("channels")?.toMutableList()
                 ?: mutableListOf()
         for (channel in channels) {
-            val newOnlineUsersCount = channelsRoot.document(channel)
-                    .read("online_users_count")?.toLong()?.plus(1) ?: 1
+            val channelNewOnlineUsersCount = channelsRoot.document(channel)
+                    .read("online_users_count")?.toInt()?.plus(1) ?: 1
             channelsRoot.document(channel)
-                    .set(Pair("online_users_count", newOnlineUsersCount.toString()))
+                    .set(Pair("online_users_count", channelNewOnlineUsersCount.toString()))
                     .update()
+
+            val channelCreationCounter = channelsRoot.document(channel).read("creation_counter")!!.toInt()
+
+            updateTree(dbMapper.getStorage("channels_by_active_users"), channel,
+                    channelNewOnlineUsersCount, channelNewOnlineUsersCount - 1,
+                    channelCreationCounter)
         }
 
         userDocument.update()
@@ -192,8 +200,7 @@ class AuthenticationManager(private val dbMapper: DatabaseMapper) {
                     .set(Pair("online_users_count", channelNewOnlineUsersCount.toString()))
                     .update()
 
-            val channelCreationCounter = channelsRoot.document(channel).
-                    read("creation_counter")!!.toInt()
+            val channelCreationCounter = channelsRoot.document(channel).read("creation_counter")!!.toInt()
 
             updateTree(dbMapper.getStorage("channels_by_active_users"), channel,
                     channelNewOnlineUsersCount, channelNewOnlineUsersCount + 1,

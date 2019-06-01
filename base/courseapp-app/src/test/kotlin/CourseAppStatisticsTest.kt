@@ -118,10 +118,9 @@ class CourseAppStatisticsTest {
     internal fun `load test - top 10 queries return the expected results`() {
         // create a lot of users
         val users = app.performRandomUsersLogin()
-        val admin = users[0]
 
         // create a lot of channels
-        val channels = app.createRandomChannels(admin)
+        val channels = app.createRandomChannels(users)
 
         // make some users join some channels & check correctness
         app.joinRandomChannels(users, channels)
@@ -129,7 +128,6 @@ class CourseAppStatisticsTest {
 
         // log out with some portion of users & check correctness
 
-        /*
         val loggedOutUsersIndices = app.performRandomLogout(users, channels)
         verifyQueriesCorrectness(statistics, users, channels)
 
@@ -140,7 +138,6 @@ class CourseAppStatisticsTest {
         // leave channels with some portion of users & check correctness
         app.leaveRandomChannels(users, channels)
         verifyQueriesCorrectness(statistics, users, channels)
-         */
     }
 
     @Test
