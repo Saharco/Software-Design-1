@@ -7,6 +7,7 @@ import il.ac.technion.cs.softwaredesign.exceptions.NoSuchEntityException
 import il.ac.technion.cs.softwaredesign.exceptions.UserAlreadyLoggedInException
 import il.ac.technion.cs.softwaredesign.exceptions.UserNotAuthorizedException
 import il.ac.technion.cs.softwaredesign.utils.DatabaseMapper
+import updateTree
 import java.time.LocalDateTime
 
 /**
@@ -130,8 +131,15 @@ class AuthenticationManager(private val dbMapper: DatabaseMapper) {
     private fun updateLoginData(userDocument: DocumentReference, storedPassword: String?,
                                 enteredPassword: String) {
         if (storedPassword == null) {
+            val creationCounter = metadataRoot.document("users_data")
+                    .read("creation_counter")?.toInt()?.plus(1) ?: 1
+            metadataRoot.document("users_data")
+                    .set(Pair("creation_counter", creationCounter.toString()))
+                    .update()
+
             userDocument.set(Pair("password", enteredPassword))
                     .set(Pair("creation_time", LocalDateTime.now().toString()))
+                    .set(Pair("creation_counter", creationCounter.toString()))
 
             val usersCountDocument = metadataRoot.document("users_data")
             val usersCount = usersCountDocument.read("users_count")?.toInt()?.plus(1)
@@ -178,11 +186,18 @@ class AuthenticationManager(private val dbMapper: DatabaseMapper) {
         val channels = userDocument.readList("channels")?.toMutableList()
                 ?: mutableListOf()
         for (channel in channels) {
-            val newOnlineUsersCount = channelsRoot.document(channel)
-                    .read("online_users_count")?.toLong()?.minus(1) ?: 0
+            val channelNewOnlineUsersCount = channelsRoot.document(channel)
+                    .read("online_users_count")?.toInt()?.minus(1) ?: 0
             channelsRoot.document(channel)
-                    .set(Pair("online_users_count", newOnlineUsersCount.toString()))
+                    .set(Pair("online_users_count", channelNewOnlineUsersCount.toString()))
                     .update()
+
+            val channelCreationCounter = channelsRoot.document(channel).
+                    read("creation_counter")!!.toInt()
+
+            updateTree(dbMapper.getStorage("channels_by_active_users"), channel,
+                    channelNewOnlineUsersCount, channelNewOnlineUsersCount + 1,
+                    channelCreationCounter)
         }
 
         userDocument.delete(listOf("token"))

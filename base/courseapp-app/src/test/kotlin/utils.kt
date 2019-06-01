@@ -6,9 +6,30 @@ import java.util.*
 data class User(val username: String, val password: String,
                 var token: String? = null,
                 val channels: MutableList<String> = mutableListOf(),
-                var isAdmin: Boolean = false)
+                var isAdmin: Boolean = false) {
 
-data class Channel(val name: String, var totalUsersCount: Int = 0, var onlineUsersCount: Int = 0)
+    companion object {
+        var creationCounter: Int = 0
+    }
+
+    val count = creationCounter
+
+    init {
+        creationCounter++
+    }
+}
+
+data class Channel(val name: String, var totalUsersCount: Int = 0, var onlineUsersCount: Int = 0) {
+    companion object {
+        var creationCounter: Int = 0
+    }
+
+    val count = creationCounter
+
+    init {
+        creationCounter++
+    }
+}
 
 /**
  * Chooses a random amount min<=x<max such that random users will leave random channels x times in total
@@ -93,9 +114,9 @@ fun CourseApp.performRandomLogout(users: ArrayList<User>,
 fun <T> createMaxHeap(collection: Collection<T>, comparator: Comparator<T>,
                       removePredicate: (T) -> Boolean = { false },
                       limit: Int = 10): PriorityQueue<T> {
-    val bigHeap = PriorityQueue<T>(comparator)
+    val bigHeap = PriorityQueue<T>(comparator.reversed())
     bigHeap.addAll(collection)
-    val heap = PriorityQueue<T>(comparator)
+    val heap = PriorityQueue<T>(comparator.reversed())
     var i = limit
     while (i > 0 && bigHeap.isNotEmpty()) {
         val element = bigHeap.poll()
@@ -140,9 +161,9 @@ fun CourseApp.createRandomChannels(admin: User, channelsAmount: Int = 50):
     val adminToken = admin.token!!
     val channels = ArrayList<Channel>()
     for (i in 0..channelsAmount) {
-        val name = UUID.randomUUID().toString()
+        val name = "#${UUID.randomUUID().toString().replace('-', '_')}"
         channelJoin(adminToken, name)
-        channels[i] = Channel(name)
+        channels.add(i, Channel(name))
     }
     return channels
 }
@@ -156,7 +177,7 @@ fun CourseApp.performRandomUsersLogin(usersAmount: Int = 100): ArrayList<User> {
     val users = ArrayList<User>()
     for (i in 0..usersAmount) {
         val name = UUID.randomUUID().toString() // this is both the username & the password
-        users[i] = User(name, name, login(name, name))
+        users.add(i, User(name, name, login(name, name)))
     }
     return users
 }
@@ -171,23 +192,46 @@ fun verifyQueriesCorrectness(statistics: CourseAppStatistics, users: ArrayList<U
                              channels: ArrayList<Channel>) {
 
     val compareChannelsByUsers = Comparator<Channel> { ch1, ch2 ->
-        ch1.totalUsersCount - ch2.totalUsersCount
+        when {
+            ch1.totalUsersCount > ch2.totalUsersCount -> 1
+            ch1.totalUsersCount < ch2.totalUsersCount -> -1
+            else -> ch2.count - ch1.count
+        }
     }
+
     val compareChannelsByOnlineUsers = Comparator<Channel> { ch1, ch2 ->
-        ch1.onlineUsersCount - ch2.onlineUsersCount
+        when {
+            ch1.onlineUsersCount > ch2.onlineUsersCount -> 1
+            ch1.onlineUsersCount < ch2.onlineUsersCount -> -1
+            else -> ch2.count - ch1.count
+        }
     }
     val compareUsersByChannels = Comparator<User> { user1, user2 ->
-        user1.channels.size - user2.channels.size
+        when {
+            user1.channels.size > user2.channels.size -> 1
+            user1.channels.size < user2.channels.size -> -1
+            else -> user2.count - user1.count
+        }
+    }
+    val channelByUsersPredicate: (Channel) -> Boolean = { it.totalUsersCount <= 0 }
+
+    val expectedTop10ChannelsByUsers = ArrayList<String>()
+    val heap1 = createMaxHeap(channels, compareChannelsByUsers, channelByUsersPredicate)
+    for (channel in heap1) {
+        expectedTop10ChannelsByUsers.add(channel.name)
     }
 
-    val channelByUsersPredicate: (Channel) -> Boolean = { it.totalUsersCount > 0 }
-    val channelByOnlineUsersPredicate: (Channel) -> Boolean = { it.onlineUsersCount > 0 }
+    val expectedTop10ChannelsByActiveUsers = ArrayList<String>()
+    val heap2 = createMaxHeap(channels, compareChannelsByOnlineUsers)
+    for (channel in heap2) {
+        expectedTop10ChannelsByActiveUsers.add(channel.name)
+    }
 
-    val expectedTop10ChannelsByUsers = createMaxHeap(channels, compareChannelsByUsers,
-            channelByUsersPredicate)
-    val expectedTop10ChannelsByActiveUsers = createMaxHeap(channels, compareChannelsByOnlineUsers,
-            channelByOnlineUsersPredicate)
-    val expectedTop10UsersByChannels = createMaxHeap(users, compareUsersByChannels)
+    val expectedTop10UsersByChannels = ArrayList<String>()
+    val heap3 = createMaxHeap(users, compareUsersByChannels)
+    for (user in heap3) {
+        expectedTop10UsersByChannels.add(user.username)
+    }
 
     Assertions.assertEquals(expectedTop10ChannelsByUsers, statistics.top10ChannelsByUsers())
     Assertions.assertEquals(expectedTop10ChannelsByActiveUsers, statistics.top10ActiveChannelsByUsers())

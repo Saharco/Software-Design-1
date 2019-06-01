@@ -28,6 +28,8 @@ class ChannelsManager(private val dbMapper: DatabaseMapper) {
             .collection("tokens")
     private val channelsRoot = dbMapper.getDatabase("channels")
             .collection("all_channels")
+    private val metadataDocument = dbMapper.getDatabase("channels")
+            .collection("metadata").document("channels_data")
 
     private val channelsByUsers = dbMapper.getStorage("channels_by_users")
     private val channelsByActiveUsers = dbMapper.getStorage("channels_by_active_users")
@@ -35,7 +37,7 @@ class ChannelsManager(private val dbMapper: DatabaseMapper) {
 
     fun channelJoin(token: String, channel: String) {
         val tokenUsername = tokenToUser(token)
-        if (!validChannelName(channel)) throw NameFormatException("invalid channel name")
+        if (!validChannelName(channel)) throw NameFormatException("invalid channel name: $channel")
 
         val userChannels = usersRoot.document(tokenUsername)
                 .readList("channels")?.toMutableList() ?: mutableListOf()
@@ -75,18 +77,18 @@ class ChannelsManager(private val dbMapper: DatabaseMapper) {
                     .update()
         }
 
-        val channelCreationTime = channelsRoot.document(channel)
-                .read("creation_time")!!
-        val userCreationTime = usersRoot.document(tokenUsername)
-                .read("creation_time")!!
+        val channelCreationCounter = channelsRoot.document(channel)
+                .read("creation_counter")?.toInt() ?: 0
+        val userCreationCounter = usersRoot.document(tokenUsername)
+                .read("creation_counter")?.toInt() ?: 0
         val usersChannelsCount = userChannels.size
 
         updateTree(channelsByUsers, channel, usersCount, usersCount - 1,
-                channelCreationTime)
+                channelCreationCounter)
         updateTree(channelsByActiveUsers, channel, onlineUsersCount, onlineUsersCount - 1,
-                channelCreationTime)
+                channelCreationCounter)
         updateTree(usersByChannels, tokenUsername, usersChannelsCount,
-                usersChannelsCount - 1, userCreationTime)
+                usersChannelsCount - 1, userCreationCounter)
     }
 
     fun channelPart(token: String, channel: String) {
@@ -188,11 +190,16 @@ class ChannelsManager(private val dbMapper: DatabaseMapper) {
      * Creates a new channel with a given operator for the channel
      */
     private fun createNewChannel(channel: String, operatorUsername: String) {
+        val creationCounter = metadataDocument.read("creation_counter")?.toInt()?.plus(1) ?: 1
+        metadataDocument.set(Pair("creation_counter", creationCounter.toString()))
+                .update()
+
         channelsRoot.document(channel)
                 .set("operators", listOf(operatorUsername))
                 .set(Pair("users_count", "1"))
                 .set(Pair("online_users_count", "1"))
                 .set(Pair("creation_time", LocalDateTime.now().toString()))
+                .set(Pair("creation_counter", creationCounter.toString()))
                 .write()
     }
 
@@ -258,20 +265,19 @@ class ChannelsManager(private val dbMapper: DatabaseMapper) {
                     .update()
         }
 
-        val channelCreationTime = channelsRoot.document(channel)
-                .read("creation_time") ?: "deleted channel anyway"
-        val userCreationTime = usersRoot.document(username)
-                .read("creation_time")!!
+        val channelCreationCounter = channelsRoot.document(channel)
+                .read("creation_counter")?.toInt() ?: 0
+        val userCreationCounter = usersRoot.document(username)
+                .read("creation_counter")?.toInt() ?: 0
         val usersChannelsCount = userChannels.size
 
         val prevOnlineUsersCount = if (isUserLoggedIn) onlineUsersCount + 1 else onlineUsersCount
         updateTree(channelsByUsers, channel, usersCount, usersCount + 1,
-                channelCreationTime, usersCount <= 0)
+                channelCreationCounter, usersCount <= 0)
         updateTree(channelsByActiveUsers, channel, onlineUsersCount, prevOnlineUsersCount,
-                channelCreationTime,
-                onlineUsersCount <= 0)
+                channelCreationCounter)
         updateTree(usersByChannels, username, usersChannelsCount,
-                usersChannelsCount + 1, userCreationTime)
+                usersChannelsCount + 1, userCreationCounter)
     }
 
     /**

@@ -4,7 +4,7 @@ import il.ac.technion.cs.softwaredesign.storage.SecureStorage
 import kotlin.math.max
 
 public fun updateTree(storage: SecureStorage, value: String, newPrimaryKey: Int, oldPrimaryKey: Int,
-                      secondaryKey: String, isDelete: Boolean = false) {
+                      secondaryKey: Int, isDelete: Boolean = false) {
     val tree = AVLTree(storage)
     val prevKey = generateKey(oldPrimaryKey, secondaryKey)
     tree.delete(prevKey)
@@ -19,17 +19,20 @@ fun treeTopK(storage: SecureStorage, k: Int = 10): List<String> {
     return tree.topKTree(k)
 }
 
-private fun generateKey(primaryKey: Int, secondaryKey: String) =
-        (String.format("%07d", primaryKey) + secondaryKey).toByteArray(charset)
+private fun generateKey(primaryKey: Int, secondaryKey: Int) =
+        "$primaryKey/$secondaryKey".toByteArray(charset)
 
 var charset = Charsets.UTF_8
 fun compareKeys(key1: ByteArray, key2: ByteArray): Int {
     val key1String = key1.toString(charset)
     val key2String = key2.toString(charset)
-    val primary1 = key1String.substring(0, 7)
-    val secondary1 = key1String.substring(7)
-    val primary2 = key2String.substring(0, 7)
-    val secondary2 = key2String.substring(7)
+    val key1separatorIndex = key1String.indexOf('/')
+    val key2separatorIndex = key2String.indexOf('/')
+
+    val primary1 = key1String.substring(0, key1separatorIndex).toInt()
+    val secondary1 = key1String.substring(key1separatorIndex + 1).toInt()
+    val primary2 = key2String.substring(0, key2separatorIndex).toInt()
+    val secondary2 = key2String.substring(key2separatorIndex + 1).toInt()
     if (primary1 > primary2) {
         return 1
     } else if (primary1 < primary2) {
@@ -185,8 +188,8 @@ class AVLTree(private val storage: SecureStorage) {
     }
 
     private fun rotateRight(node: ByteArray): ByteArray {
-        val x = AVLNode.read(storage, gson, node)!!
-        val y: AVLNode = AVLNode.read(storage, gson, x.left!!)!!
+        val x = AVLNode.read(storage, gson, node) ?: return node
+        val y: AVLNode = AVLNode.read(storage, gson, x.left) ?: return node
         x.left = y.right
         y.right = x.key
         x.height = 1 + max(height(x.left), height(x.right))
@@ -197,8 +200,8 @@ class AVLTree(private val storage: SecureStorage) {
     }
 
     private fun rotateLeft(node: ByteArray): ByteArray {
-        val x = AVLNode.read(storage, gson, node)!!
-        val y: AVLNode = AVLNode.read(storage, gson, x.right!!)!!
+        val x = AVLNode.read(storage, gson, node) ?: return node
+        val y: AVLNode = AVLNode.read(storage, gson, x.right) ?: return node
         x.right = y.left
         y.left = x.key
         x.height = 1 + max(height(x.left), height(x.right))
@@ -315,7 +318,8 @@ class AVLTree(private val storage: SecureStorage) {
             curr.save()
             return curr.height
         } else {
-            return -1
+            return max((AVLNode.read(storage, gson, curr.left)?.height ?: -1) + 1,
+                    (AVLNode.read(storage, gson, curr.right)?.height ?: -1) + 1)
         }
     }
 
