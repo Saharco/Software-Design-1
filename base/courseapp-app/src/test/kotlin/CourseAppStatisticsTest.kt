@@ -62,7 +62,7 @@ class CourseAppStatisticsTest {
 
     @Test
     internal fun `querying top 10 when there are no channels should return an empty list`() {
-        val list1 = statistics.top10UsersByChannels()
+        val list1 = statistics.top10ChannelsByUsers()
         val list2 = statistics.top10ActiveChannelsByUsers()
         val list3 = statistics.top10UsersByChannels()
 
@@ -72,7 +72,7 @@ class CourseAppStatisticsTest {
     }
 
     @Test
-    fun `top 10 channel list does secondary sorting by creation order`() {
+    internal fun `top 10 channel list does secondary sorting by creation order`() {
         val adminToken = app.login("admin", "admin")
         val nonAdminToken = app.login("matan", "4321")
         app.makeAdministrator(adminToken, "matan")
@@ -87,7 +87,7 @@ class CourseAppStatisticsTest {
     }
 
     @Test
-    fun `top 10 channel list counts only logged in users`() {
+    internal fun `top 10 channel list counts only logged in users`() {
         val adminToken = app.login("admin", "admin")
         val nonAdminToken = app.login("matan", "4321")
         app.makeAdministrator(adminToken, "matan")
@@ -102,7 +102,7 @@ class CourseAppStatisticsTest {
     }
 
     @Test
-    fun `top 10 user list does secondary sorting by registration order`() {
+    internal fun `top 10 user list does secondary sorting by registration order`() {
         val adminToken = app.login("admin", "admin")
         val nonAdminToken = app.login("matan", "4321")
         app.makeAdministrator(adminToken, "matan")
@@ -113,6 +113,40 @@ class CourseAppStatisticsTest {
         assertEquals("admin", list.removeAt(list.size - 1))
         assertEquals("matan", list.removeAt(list.size - 1))
     }
+
+    /**
+     * Tests correctness of the following functions via load testing:
+     * - [CourseAppStatistics.top10ChannelsByUsers]
+     * - [CourseAppStatistics.top10ActiveChannelsByUsers]
+     * - [CourseAppStatistics.top10UsersByChannels]
+     * Assertions are made with [verifyQueriesCorrectness]
+     */
+    @Test
+    internal fun `load test - top 10 queries return the expected results`() {
+        // create a lot of users
+        val users = app.performRandomUsersLogin()
+        val admin = users[0]
+
+        // create a lot of channels
+        val channels = app.createRandomChannels(admin)
+
+        // make some users join some channels & check correctness
+        app.joinRandomChannels(users, channels)
+        verifyQueriesCorrectness(statistics, users, channels)
+
+        // log out with some portion of users & check correctness
+        val loggedOutUsersIndices = app.performRandomLogout(users, channels)
+        verifyQueriesCorrectness(statistics, users, channels)
+
+        // log back in with some users & check correctness
+        app.performRandomRelog(loggedOutUsersIndices, users, channels)
+        verifyQueriesCorrectness(statistics, users, channels)
+
+        // leave channels with some portion of users & check correctness
+        app.leaveRandomChannels(users, channels)
+        verifyQueriesCorrectness(statistics, users, channels)
+    }
+
     @Test
     internal fun `The database calculates top10ChannelsByUsers correctly`() {
         val tokenList = LinkedList<String>()
