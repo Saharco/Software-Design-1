@@ -1,30 +1,34 @@
 package il.ac.technion.cs.softwaredesign
 
 import com.authzee.kotlinguice4.KotlinModule
+import com.authzee.kotlinguice4.getInstance
+import com.google.inject.Guice
 import com.google.inject.Provides
 import com.google.inject.Singleton
 import il.ac.technion.cs.softwaredesign.database.CourseAppDatabaseFactory
 import il.ac.technion.cs.softwaredesign.database.Database
 import il.ac.technion.cs.softwaredesign.mocks.SecureStorageFactoryMock
 import il.ac.technion.cs.softwaredesign.storage.SecureStorage
+import il.ac.technion.cs.softwaredesign.storage.SecureStorageFactory
+import il.ac.technion.cs.softwaredesign.storage.SecureStorageModule
 import il.ac.technion.cs.softwaredesign.utils.DatabaseMapper
 
 class CourseAppModule : KotlinModule() {
 
     /*
-     * Replace with these two when running the tests with mocks:
+     * Replace the fields with these two when running the tests with mocks:
      *
      * --- TO THE STAFF: ---
      *  we are pretty sure this is what you meant, but this means that at the time of submission:
      *  our tests do not run anymore because we don't have the real SecureStorage implementation
      * ---------------------
-     *
+     * //TODO: change this when submitting
      * private val factory = SecureStorageFactoryMock()
      * private val dbFactory = CourseAppDatabaseFactory(factory)
      *
      */
-
-    private val factory = SecureStorageFactoryMock() //TODO: change this when submitting
+    private val storageInjector = Guice.createInjector(SecureStorageModule())
+    private val factory = storageInjector.getInstance<SecureStorageFactory>()
     private val dbFactory = CourseAppDatabaseFactory(factory)
 
     override fun configure() {
