@@ -3,8 +3,20 @@ import com.google.gson.JsonParser
 import il.ac.technion.cs.softwaredesign.storage.SecureStorage
 import kotlin.math.max
 
-public fun updateTree(storage: SecureStorage, value: String, newPrimaryKey: Int, oldPrimaryKey: Int,
-                      secondaryKey: Int, isDelete: Boolean = false) {
+var charset = Charsets.UTF_8
+
+/**
+ * Updates a tree - wraps insertion and (possibly) deletion in one operation
+ *
+ * @param storage: the storage where the tree is stored
+ * @param value: the new value of the stored node
+ * @param newPrimaryKey: the new primary key of the node
+ * @param oldPrimaryKey: the previous primary key, as currently stored in the storage
+ * @param secondaryKey: the secondary key of the node
+ * @param isDelete: if true - this is a delete operation (no re-insertion made)
+ */
+fun updateTree(storage: SecureStorage, value: String, newPrimaryKey: Int, oldPrimaryKey: Int,
+               secondaryKey: Int, isDelete: Boolean = false) {
     val tree = AVLTree(storage)
     val prevKey = generateKey(oldPrimaryKey, secondaryKey)
     tree.delete(prevKey)
@@ -14,16 +26,36 @@ public fun updateTree(storage: SecureStorage, value: String, newPrimaryKey: Int,
     }
 }
 
+/**
+ * Collects the highest-valued elements in the tree
+ *
+ * @param storage: the storage where the tree is stored
+ * @param k: desired amount of top elements to query from the tree
+ * @return a list of the [k] highest-valued nodes' values, according to the comparator.
+ *  If there are less than [k] nodes in the tree: that many nodes are returned
+ */
 fun treeTopK(storage: SecureStorage, k: Int = 10): List<String> {
     val tree = AVLTree(storage)
     return tree.topKTree(k)
 }
 
+/**
+ *  Generates a key from a primary key & secondary key
+ */
 private fun generateKey(primaryKey: Int, secondaryKey: Int) =
         "$primaryKey/$secondaryKey".toByteArray(charset)
 
-var charset = Charsets.UTF_8
-fun compareKeys(key1: ByteArray, key2: ByteArray): Int {
+/**
+ * Compares two keys. The keys are compared such that:
+ * [key1] > [key2] if its primary key is bigger, or its secondary key is smaller.
+ * [key2] > [key1] if its primary key is bigger, or its secondary key is smaller.
+ * A pair of keys where none of these conditions are met are considered to be equal
+ *
+ * @return a positive number if [key1] > [key2],
+ *  negative number if [key2] > [key1]
+ *  0 otherwise.
+ */
+private fun compareKeys(key1: ByteArray, key2: ByteArray): Int {
     val key1String = key1.toString(charset)
     val key2String = key2.toString(charset)
     val key1separatorIndex = key1String.indexOf('/')
@@ -46,13 +78,24 @@ fun compareKeys(key1: ByteArray, key2: ByteArray): Int {
 }
 
 /**
- * AVLTree implementation.
- * @param storage - the SecureStorage instanece to store the tree
+ * Implementation of an AVL tree. Nodes are stored externally in a given storage.
+ * @param storage - the SecureStorage instance on which to store the tree
  */
 class AVLTree(private val storage: SecureStorage) {
     private val gson = Gson()
     private var root: AVLNode? = null
 
+    /**
+     * a class that represents a node.
+     * the next nodes in the tree (left and right) can be retrieved through the corresponding keys that are
+     * stored in this node.
+     * @param storage the SecureStorage instance to store the node
+     * @param key the node's key
+     * @param value the node's value
+     * @param left the node's left key
+     * @param right the node's left key
+     * @param height the node's height
+     */
     class AVLNode(var storage: SecureStorage,
                   var key: ByteArray, var value: ByteArray,
                   var left: ByteArray? = null, var right: ByteArray? = null,
@@ -79,6 +122,12 @@ class AVLTree(private val storage: SecureStorage) {
         }
 
         companion object {
+            /**
+             * a static method to read a node from the storage given it's key
+             * @param storage the securestorage instance to read from
+             * @param gson the Gson object used to parse the node
+             * @param key the node's key.
+             */
             fun read(storage: SecureStorage, gson: Gson, key: ByteArray?): AVLNode? {
                 if (key == null) {
                     return null
@@ -95,6 +144,10 @@ class AVLTree(private val storage: SecureStorage) {
             }
         }
 
+        /**
+         * appends the top k elements in the node's subtree based on their keys
+         * @param list the list to append the elements to
+         */
         fun topK(list: MutableList<String>, k: Int) {
             if (list.size == k) return
             read(storage, gson, right)?.topK(list, k)
@@ -106,6 +159,9 @@ class AVLTree(private val storage: SecureStorage) {
 
     }
 
+    /**
+     * initializes the tree by reading a special key "node" which stores a root reference.
+     */
     init {
         val rootJson = storage.read("root".toByteArray(charset))
         if (rootJson == null) {
@@ -115,6 +171,10 @@ class AVLTree(private val storage: SecureStorage) {
         }
     }
 
+    /**
+     * returns the height of a given node.
+     * @param nodeKey the key of the node
+     */
     private fun height(nodeKey: ByteArray?): Int {
         if (nodeKey == null) {
             return -1
@@ -125,6 +185,8 @@ class AVLTree(private val storage: SecureStorage) {
 
     /**
      * Inserts a new key, value pair to the tree
+     * @param key the node's key
+     * @param value the node's value
      */
     fun insert(key: ByteArray, value: ByteArray) {
         root = AVLNode.read(storage, gson, insert(key, value, root))
@@ -133,9 +195,12 @@ class AVLTree(private val storage: SecureStorage) {
 
     /**
      * Inserts a new key,value pair to the subtree based at node.
+     * @param key the node's key
+     * @param value the node's value
+     * @param node the subtree root node
      * @return the new root key of the subtree
      */
-    fun insert(key: ByteArray, value: ByteArray, node: AVLNode?): ByteArray? {
+    private fun insert(key: ByteArray, value: ByteArray, node: AVLNode?): ByteArray? {
         if (node == null) {
             val newNode = AVLNode(storage, key, value)
             newNode.save()
@@ -155,6 +220,8 @@ class AVLTree(private val storage: SecureStorage) {
 
     /**
      * balances a subtree based in node. returns the key of the new root node
+     * @param node the subtree's root node
+     * @param key the new key that was inserted into the tree
      */
     private fun balance(node: AVLNode, key: ByteArray): ByteArray? {
         //balance
@@ -183,10 +250,17 @@ class AVLTree(private val storage: SecureStorage) {
         return node.key
     }
 
+    /**
+     * returns the balance factor of a given node by subtracting the left node's height by the right node's height.
+     * @param node the node to calculate the balance factor
+     */
     private fun balanceFactor(node: AVLNode): Int {
         return height(node.left) - height(node.right)
     }
 
+    /**
+     *  the rotations functions.
+     */
     private fun rotateRight(node: ByteArray): ByteArray {
         val x = AVLNode.read(storage, gson, node) ?: return node
         val y: AVLNode = AVLNode.read(storage, gson, x.left) ?: return node
@@ -211,10 +285,19 @@ class AVLTree(private val storage: SecureStorage) {
         return y.key
     }
 
+    /**
+     * search's a value given it's key
+     * @param key the node's key
+     */
     fun search(key: ByteArray): ByteArray? {
         return search(root, key)
     }
 
+    /**
+     * search's a value given it's key in a given node's subtree
+     * @param key the node's key
+     * @param node the subtree's root
+     */
     private fun search(node: AVLNode?, key: ByteArray): ByteArray? {
         if (node == null) {
             return null
@@ -237,6 +320,7 @@ class AVLTree(private val storage: SecureStorage) {
 
     /**
      * deletes a node from the tree
+     * @param key: the node's key
      */
     fun delete(key: ByteArray) {
         root = AVLNode.read(storage, gson, delete(root, key))
@@ -244,32 +328,35 @@ class AVLTree(private val storage: SecureStorage) {
 
     /**
      * deletes a node from a subtree.
+     * @param node the subtree root
+     * @param key the node's key
      */
     private fun delete(node: AVLNode?, key: ByteArray): ByteArray? {
         if (node == null) {
             return null
         }
         val cmp = compareKeys(node.key, key)
-        if (cmp > 0) {
-            node.left = delete(AVLNode.read(storage, gson, node.left), key)
-            node.save()
-            return node.key
-        } else if (cmp < 0) {
-            node.right = delete(AVLNode.read(storage, gson, node.right), key)
-            node.save()
-            return node.key
-        } else {
-            // found the node that needs to be deleted
-            if (node.left == null) {
-                return node.right
-            } else if (node.right == null) {
-                return node.left
-            } else {
-                // the node has 2 children
-                val result = replaceWithSuccessor(node)
-                return result.key
+        when {
+            cmp > 0 -> {
+                node.left = delete(AVLNode.read(storage, gson, node.left), key)
+                node.save()
+                return node.key
             }
-
+            cmp < 0 -> {
+                node.right = delete(AVLNode.read(storage, gson, node.right), key)
+                node.save()
+                return node.key
+            }
+            else -> // found the node that needs to be deleted
+                return when {
+                    node.left == null -> node.right
+                    node.right == null -> node.left
+                    else -> {
+                        // the node has 2 children
+                        val result = replaceWithSuccessor(node)
+                        result.key
+                    }
+                }
         }
     }
 
@@ -301,28 +388,34 @@ class AVLTree(private val storage: SecureStorage) {
         val cmp = compareKeys(curr.key, key)
         val rightNode = AVLNode.read(storage, gson, curr.right)
         val leftNode = AVLNode.read(storage, gson, curr.left)
-        if (cmp > 0) {
-            if (rightNode != null) {
-                curr.height = max(rightNode.height, updateHeights(leftNode!!, key))
-            } else {
-                curr.height = updateHeights(leftNode!!, key) + 1
+        when {
+            cmp > 0 -> {
+                if (rightNode != null) {
+                    curr.height = max(rightNode.height, updateHeights(leftNode!!, key))
+                } else {
+                    curr.height = updateHeights(leftNode!!, key) + 1
+                }
+                curr.save()
+                return curr.height
             }
-            curr.save()
-            return curr.height
-        } else if (cmp < 0) {
-            if (leftNode != null) {
-                curr.height = max(leftNode.height, updateHeights(rightNode!!, key))
-            } else {
-                curr.height = updateHeights(rightNode!!, key) + 1
+            cmp < 0 -> {
+                if (leftNode != null) {
+                    curr.height = max(leftNode.height, updateHeights(rightNode!!, key))
+                } else {
+                    curr.height = updateHeights(rightNode!!, key) + 1
+                }
+                curr.save()
+                return curr.height
             }
-            curr.save()
-            return curr.height
-        } else {
-            return max((AVLNode.read(storage, gson, curr.left)?.height ?: -1) + 1,
+            else -> return max((AVLNode.read(storage, gson, curr.left)?.height ?: -1) + 1,
                     (AVLNode.read(storage, gson, curr.right)?.height ?: -1) + 1)
         }
     }
 
+    /**
+     * returns the top k elements in the list based on their keys
+     * @param k
+     */
     fun topKTree(k: Int): List<String> {
         val topKList = mutableListOf<String>()
         root?.topK(topKList, k)
