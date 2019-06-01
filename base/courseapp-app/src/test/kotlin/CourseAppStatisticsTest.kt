@@ -104,7 +104,7 @@ class CourseAppStatisticsTest {
         app.channelJoin(adminToken, "#test")
         app.channelJoin(nonAdminToken, "#other")
 
-        assertEquals(listOf("admin", "matam"), statistics.top10UsersByChannels())
+        assertEquals(listOf("admin", "matan"), statistics.top10UsersByChannels())
     }
 
     /**
