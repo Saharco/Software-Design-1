@@ -77,13 +77,10 @@ class CourseAppStatisticsTest {
         val nonAdminToken = app.login("matan", "4321")
         app.makeAdministrator(adminToken, "matan")
 
-
         app.channelJoin(adminToken, "#test")
         app.channelJoin(nonAdminToken, "#other")
 
-        val list = statistics.top10ChannelsByUsers().toMutableList()
-        assertEquals("#test", list.removeAt(list.size - 1))
-        assertEquals("#other", list.removeAt(list.size - 1))
+        assertEquals(listOf("#test", "#other"), statistics.top10ChannelsByUsers())
     }
 
     @Test
@@ -96,9 +93,7 @@ class CourseAppStatisticsTest {
         app.channelJoin(nonAdminToken, "#other")
         app.logout(nonAdminToken)
 
-        val list = statistics.top10ActiveChannelsByUsers().toMutableList()
-        assertEquals("#test", list.removeAt(list.size - 1))
-        assertEquals("#other", list.removeAt(list.size - 1))
+        assertEquals(listOf("#test", "#other"), statistics.top10ActiveChannelsByUsers())
     }
 
     @Test
@@ -109,9 +104,7 @@ class CourseAppStatisticsTest {
         app.channelJoin(adminToken, "#test")
         app.channelJoin(nonAdminToken, "#other")
 
-        val list = statistics.top10UsersByChannels().toMutableList()
-        assertEquals("admin", list.removeAt(list.size - 1))
-        assertEquals("matan", list.removeAt(list.size - 1))
+        assertEquals(listOf("admin", "matam"), statistics.top10UsersByChannels())
     }
 
     /**
