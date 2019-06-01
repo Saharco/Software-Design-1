@@ -1,13 +1,13 @@
 package il.ac.technion.cs.softwaredesign
 
 import il.ac.technion.cs.softwaredesign.database.Database
-import il.ac.technion.cs.softwaredesign.database.treeTopK
-import il.ac.technion.cs.softwaredesign.database.updateTree
 import il.ac.technion.cs.softwaredesign.exceptions.InvalidTokenException
 import il.ac.technion.cs.softwaredesign.exceptions.NameFormatException
 import il.ac.technion.cs.softwaredesign.exceptions.NoSuchEntityException
 import il.ac.technion.cs.softwaredesign.exceptions.UserNotAuthorizedException
 import il.ac.technion.cs.softwaredesign.utils.DatabaseMapper
+import treeTopK
+import updateTree
 import java.time.LocalDateTime
 
 
