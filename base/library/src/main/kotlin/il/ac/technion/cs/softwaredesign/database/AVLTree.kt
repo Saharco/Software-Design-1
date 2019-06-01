@@ -3,6 +3,25 @@ import com.google.gson.JsonParser
 import il.ac.technion.cs.softwaredesign.storage.SecureStorage
 import kotlin.math.max
 
+public fun updateTree(storage: SecureStorage, value: String, newPrimaryKey: Int, oldPrimaryKey: Int,
+                      secondaryKey: String, isDelete: Boolean = false) {
+    val tree = AVLTree(storage)
+    val prevKey = generateKey(oldPrimaryKey, secondaryKey)
+    tree.delete(prevKey)
+    if (!isDelete) {
+        val newKey = generateKey(newPrimaryKey, secondaryKey)
+        tree.insert(newKey, value.toByteArray(charset))
+    }
+}
+
+fun treeTopK(storage: SecureStorage, k: Int = 10): List<String> {
+    val tree = AVLTree(storage)
+    return tree.topKTree(k)
+}
+
+private fun generateKey(primaryKey: Int, secondaryKey: String) =
+        (String.format("%07d", primaryKey) + secondaryKey).toByteArray(charset)
+
 var charset = Charsets.UTF_8
 fun compareKeys(key1: ByteArray, key2: ByteArray): Int {
     val key1String = key1.toString(charset)
@@ -71,6 +90,15 @@ class AVLTree(private val storage: SecureStorage) {
                 val height = gson.fromJson(array.get(4), Int::class.java)
                 return AVLNode(storage, readKey, value, left, right, height)
             }
+        }
+
+        fun topK(list: MutableList<String>, k: Int) {
+            if (list.size == k) return
+            read(storage, gson, right)?.topK(list, k)
+            if (list.size == k) return
+            list.add(value.toString(charset))
+            if (list.size == k) return
+            read(storage, gson, left)?.topK(list, k)
         }
 
     }
@@ -289,5 +317,10 @@ class AVLTree(private val storage: SecureStorage) {
         } else {
             return -1
         }
+    }
+    fun topKTree(k: Int): List<String> {
+        val topKList = mutableListOf<String>()
+        root?.topK(topKList, k)
+        return topKList
     }
 }
