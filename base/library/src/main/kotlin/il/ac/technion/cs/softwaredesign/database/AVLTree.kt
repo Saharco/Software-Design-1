@@ -1,14 +1,9 @@
-package il.ac.technion.cs.softwaredesign.database
-
-/**
- * You can edit, run, and share this code.
- * play.kotlinlang.org
- */
 import com.google.gson.Gson
 import com.google.gson.JsonParser
-import java.util.ArrayList
 import il.ac.technion.cs.softwaredesign.storage.SecureStorage
+import kotlin.math.max
 
+var charset = Charsets.UTF_8
 fun compareKeys(key1: ByteArray, key2: ByteArray): Int {
     val key1String = key1.toString(charset)
     val key2String = key2.toString(charset)
@@ -28,293 +23,161 @@ fun compareKeys(key1: ByteArray, key2: ByteArray): Int {
     return 0
 }
 
-var charset = Charsets.UTF_8
-public fun updateTree(storage: SecureStorage, value: String, newPrimaryKey: Int, oldPrimaryKey: Int,
-                      secondaryKey: String, isDelete: Boolean = false) {
-    val tree = AVLTree(storage)
-    val prevKey = generateKey(oldPrimaryKey, secondaryKey)
-    tree.delete(prevKey)
-    if (!isDelete) {
-        val newKey = generateKey(newPrimaryKey, secondaryKey)
-        tree.insert(newKey, value.toByteArray(charset))
-    }
-}
-
-fun treeTopK(storage: SecureStorage, k: Int = 10): List<String> {
-    val tree = AVLTree(storage)
-    val topK = mutableListOf<String>()
-    tree.root?.topK(topK, k)
-    return topK
-}
-
-private fun generateKey(primaryKey: Int, secondaryKey: String) =
-        (String.format("%07d", primaryKey) + secondaryKey).toByteArray(charset)
-
-fun max(l: Int?, r: Int?): Int {
-    if (l == null) {
-        if (r == null) {
-            return 0
-        }
-        return r
-    }
-    if (r == null) {
-        return l
-    }
-    return if (l > r) l else r
-}
-
-class AVLNode(var key: ByteArray, var value: ByteArray,
-              var left: ByteArray? = null, var right: ByteArray? = null,
-              var height: Int = 0,
-              val storage: SecureStorage) {
+/**
+ * AVLTree implementation.
+ * @param storage - the SecureStorage instanece to store the tree
+ */
+class AVLTree(private val storage: SecureStorage) {
     private val gson = Gson()
-    override fun toString(): String {
-        return "key is: ${key.toString(charset)} and value is ${value.toString(charset)}"
-    }
+    private var root: AVLNode? = null
 
-    fun getLeft(): AVLNode? {
-        if (left == null) {
-            return null
+    class AVLNode(var storage: SecureStorage,
+                  var key: ByteArray, var value: ByteArray,
+                  var left: ByteArray? = null, var right: ByteArray? = null,
+                  var height: Int = 0) {
+
+        private val gson = Gson()
+
+        override fun toString(): String {
+            return "key is: ${key.toString(charset)} and value is ${value.toString(charset)}"
         }
-        val parser = JsonParser()
-        val array = parser.parse(storage.read(left!!)!!.toString(charset)).asJsonArray
-        val key = gson.fromJson(array.get(0), ByteArray::class.java)
-        val value = gson.fromJson(array.get(1), ByteArray::class.java)
-        val left = gson.fromJson(array.get(2), ByteArray::class.java)
-        val right = gson.fromJson(array.get(3), ByteArray::class.java)
-        val height = gson.fromJson(array.get(4), Int::class.java)
-        return AVLNode(key, value, left, right, height, storage)
-    }
 
-    fun getRight(): AVLNode? {
-        if (right == null) {
-            return null
+        /**
+         * saves the node in the storage
+         */
+        fun save() {
+            val collection = ArrayList<Any?>()
+            collection.add(key)
+            collection.add(value)
+            collection.add(left)
+            collection.add(right)
+            collection.add(height)
+            val json = gson.toJson(collection)
+            storage.write(key, json.toByteArray(charset))
         }
-        val parser = JsonParser()
-        val array = parser.parse(storage.read(right!!)!!.toString(charset)).asJsonArray
-        val key = gson.fromJson(array.get(0), ByteArray::class.java)
-        val value = gson.fromJson(array.get(1), ByteArray::class.java)
-        val left = gson.fromJson(array.get(2), ByteArray::class.java)
-        val right = gson.fromJson(array.get(3), ByteArray::class.java)
-        val height = gson.fromJson(array.get(4), Int::class.java)
-        return AVLNode(key, value, left, right, height, storage)
-    }
 
-    fun setLeft(node: AVLNode?) {
-        if (node == null) {
-            left = null
-            applyChanges()
-            return
+        companion object {
+            fun read(storage: SecureStorage, gson: Gson, key: ByteArray?): AVLNode? {
+                if (key == null) {
+                    return null
+                }
+                val storageResult = storage.read(key) ?: return null
+                val parser = JsonParser()
+                val array = parser.parse(storageResult.toString(charset)).asJsonArray
+                val readKey = gson.fromJson(array.get(0), ByteArray::class.java)
+                val value = gson.fromJson(array.get(1), ByteArray::class.java)
+                val left = gson.fromJson(array.get(2), ByteArray::class.java)
+                val right = gson.fromJson(array.get(3), ByteArray::class.java)
+                val height = gson.fromJson(array.get(4), Int::class.java)
+                return AVLNode(storage, readKey, value, left, right, height)
+            }
         }
-        var collection = ArrayList<Any?>()
-        collection.add(node.key)
-        collection.add(node.value)
-        collection.add(node.left)
-        collection.add(node.right)
-        collection.add(node.height)
-        val json = gson.toJson(collection)
-        storage.write(node.key, json.toByteArray(charset))
-        left = node.key
-        height = max(node.height, node.getLeft()?.height)
-        applyChanges()
+
     }
-
-
-    fun setRight(node: AVLNode?) {
-        if (node == null) {
-            right = null
-            applyChanges()
-            return
-        }
-        var collection = ArrayList<Any?>()
-        collection.add(node.key)
-        collection.add(node.value)
-        collection.add(node.left)
-        collection.add(node.right)
-        collection.add(node.height)
-        val json = gson.toJson(collection)
-        storage.write(node.key, json.toByteArray(charset))
-        right = node.key
-        height = max(node.height, node.getLeft()?.height)
-        applyChanges()
-    }
-
-    fun size(): Int {
-        return 1 + (getLeft()?.size() ?: 0) + (getRight()?.size() ?: 0)
-    }
-
-    fun applyChanges() {
-        var collection = ArrayList<Any?>()
-        collection.add(key)
-        collection.add(value)
-        collection.add(left)
-        collection.add(right)
-        collection.add(height)
-        val json = gson.toJson(collection)
-        storage.write(key, json.toByteArray(charset))
-    }
-
-    fun printTree() {
-        val left = getLeft()
-        val right = getRight()
-        println("key: " + key.toString(charset) + ", value: " + value.toString(charset))
-        if (left != null) {
-            left.printTree()
-        }
-        if (right != null) {
-            right.printTree()
-        }
-    }
-
-    fun topK(list: MutableList<String>, k: Int) {
-        if (list.size == k) return
-        getRight()?.topK(list, k)
-        if (list.size == k) return
-        if (!value.contentEquals("null".toByteArray(charset))) {
-            list.add(value.toString(charset))
-        }
-        if (list.size == k) return
-        getLeft()?.topK(list, k)
-    }
-}
-
-
-class AVLTree(val storage: SecureStorage) {
-
-    private val gson = Gson()
-    private val parser = JsonParser()
-    var root: AVLNode? = null
 
     init {
-        val rootJson = storage.read("root".toByteArray(charset))?.toString(charset)
+        val rootJson = storage.read("root".toByteArray(charset))
         if (rootJson == null) {
             root = null
         } else {
-            val array = parser.parse(rootJson).asJsonArray
-            val rootKey = gson.fromJson(array.get(0), ByteArray::class.java)
-            val array2 = parser.parse(storage.read(rootKey!!)!!.toString(charset)).asJsonArray
-            val key = gson.fromJson(array2.get(0), ByteArray::class.java)
-            val value = gson.fromJson(array2.get(1), ByteArray::class.java)
-            val left = gson.fromJson(array2.get(2), ByteArray::class.java)
-            val right = gson.fromJson(array2.get(3), ByteArray::class.java)
-            val height = gson.fromJson(array2.get(4), Int::class.java)
-            root = AVLNode(key, value, left, right, height, storage)
+            root = AVLNode.read(storage, gson, rootJson)
         }
     }
 
-
-    public fun isEmpty(): Boolean {
-        return root == null
-    }
-
-    public fun insert(key: ByteArray, value: ByteArray) {
-        root = insert(key, value, root)
-        val collection = ArrayList<Any?>()
-        collection.add(root!!.key)
-        val json = gson.toJson(collection)
-        storage.write("root".toByteArray(charset), json.toByteArray(charset))
-        root!!.applyChanges()
-    }
-
-    private fun height(node: AVLNode?): Int {
+    private fun height(nodeKey: ByteArray?): Int {
+        if (nodeKey == null) {
+            return -1
+        }
+        val node = AVLNode.read(storage, gson, nodeKey)
         return node?.height ?: -1
     }
 
-    override fun toString(): String {
-        return "root:" + root?.key?.toString(charset) + " : " + root?.value?.toString(charset) + "\n" +
-                "left:" + root?.getLeft()?.toString() + "\n" +
-                "right:" + root?.getRight()?.toString() + "\n"
+    /**
+     * Inserts a new key, value pair to the tree
+     */
+    fun insert(key: ByteArray, value: ByteArray) {
+        root = AVLNode.read(storage, gson, insert(key, value, root))
+        storage.write("root".toByteArray(charset), root!!.key)
     }
 
-    // returns the top node in the current stage
-    private fun insert(key: ByteArray, value: ByteArray, node: AVLNode?): AVLNode {
+    /**
+     * Inserts a new key,value pair to the subtree based at node.
+     * @return the new root key of the subtree
+     */
+    fun insert(key: ByteArray, value: ByteArray, node: AVLNode?): ByteArray? {
         if (node == null) {
-            return AVLNode(key, value, storage = storage)
+            val newNode = AVLNode(storage, key, value)
+            newNode.save()
+            return newNode.key
         }
         val cmp = compareKeys(node.key, key)
         if (cmp > 0) {
-            node.setLeft(insert(key, value, node.getLeft()))
+            node.left = insert(key, value, AVLNode.read(storage, gson, node.left))
+            node.height = max(height(node.left) + 1, node.height)
         } else if (cmp < 0) {
-            node.setRight(insert(key, value, node.getRight()))
+            node.right = insert(key, value, AVLNode.read(storage, gson, node.right))
+            node.height = max(height(node.right) + 1, node.height)
         }
-        node.height = 1 + max(height(node.getLeft()), height(node.getRight()))
-        node.applyChanges()
-
+        node.save()
         return balance(node, key)
     }
 
-    private fun balance(node: AVLNode, key: ByteArray): AVLNode {
+    /**
+     * balances a subtree based in node. returns the key of the new root node
+     */
+    private fun balance(node: AVLNode, key: ByteArray): ByteArray? {
         //balance
         val balance = balanceFactor(node)
-        val cmpLeft = compareKeys(node.getLeft()!!.key, key)
-        val cmpRight = compareKeys(node.getRight()!!.key, key)
+
         // Left Left
-        if (balance > 1 && cmpLeft > 0) {
-            return rotateRight(node)
+        if (balance > 1 && compareKeys(node.left!!, key) > 0) {
+            return rotateRight(node.key)
         }
         // Right Right
-        if (balance < -1 && cmpRight < 0) {
-            return rotateLeft(node)
+        if (balance < -1 && compareKeys(node.right!!, key) < 0) {
+            return rotateLeft(node.key)
         }
         // Left Right
-        if (balance > 1 && cmpLeft < 0) {
-            node.setLeft(rotateLeft(node.getLeft()!!))
-            return rotateRight(node)
+        if (balance > 1 && compareKeys(node.left!!, key) < 0) {
+            node.left = rotateLeft(node.left!!)
+            node.save()
+            return rotateRight(node.key)
         }
         // Right Left
-        if (balance < -1 && cmpRight > 0) {
-            node.setRight(rotateRight(node.getRight()!!))
-            return rotateLeft(node)
+        if (balance < -1 && compareKeys(node.right!!, key) > 0) {
+            node.right = rotateRight(node.right!!)
+            node.save()
+            return rotateLeft(node.key)
         }
-        return node
+        return node.key
     }
 
-    fun delete(key: ByteArray) {
-        delete(root, key)
+    private fun balanceFactor(node: AVLNode): Int {
+        return height(node.left) - height(node.right)
     }
 
-    private fun delete(node: AVLNode?, key: ByteArray) {
-        var curr = node
-        var result: AVLNode? = null
-        while (curr != null) {
-            val cmp = compareKeys(curr.key, key)
-            if (cmp > 0) {
-                curr = curr.getLeft()
-            } else if (cmp < 0) {
-                curr = curr.getRight()
-            } else {
-                result = curr
-                break
-            }
-        }
-        result?.value = "null".toByteArray(charset)
-        result?.applyChanges()
+    private fun rotateRight(node: ByteArray): ByteArray {
+        val x = AVLNode.read(storage, gson, node)!!
+        val y: AVLNode = AVLNode.read(storage, gson, x.left!!)!!
+        x.left = y.right
+        y.right = x.key
+        x.height = 1 + max(height(x.left), height(x.right))
+        x.save()
+        y.height = 1 + max(height(y.left), height(y.right))
+        y.save()
+        return y.key
     }
 
-    private fun balanceFactor(node: AVLNode?): Int {
-        return height(node!!.getLeft()) - height(node.getRight())
-    }
-
-    private fun rotateRight(x: AVLNode): AVLNode {
-        var y: AVLNode = x.getLeft()!!
-        x.setLeft(y.getRight())
-        y.setRight(x)
-        x.height = 1 + max(height(x.getLeft()), height(x.getRight()))
-        x.applyChanges()
-        y.height = 1 + max(height(y.getLeft()), height(y.getRight()))
-        y.applyChanges()
-        return y
-    }
-
-    private fun rotateLeft(x: AVLNode): AVLNode {
-        var y: AVLNode = x.getRight()!!
-        x.setRight(y.getLeft())
-        y.setLeft(x)
-        x.height = 1 + max(height(x.getLeft()), height(x.getRight()))
-        x.applyChanges()
-        y.height = 1 + max(height(y.getLeft()), height(y.getRight()))
-        y.applyChanges()
-        return y
+    private fun rotateLeft(node: ByteArray): ByteArray {
+        val x = AVLNode.read(storage, gson, node)!!
+        val y: AVLNode = AVLNode.read(storage, gson, x.right!!)!!
+        x.right = y.left
+        y.left = x.key
+        x.height = 1 + max(height(x.left), height(x.right))
+        x.save()
+        y.height = 1 + max(height(y.left), height(y.right))
+        y.save()
+        return y.key
     }
 
     fun search(key: ByteArray): ByteArray? {
@@ -330,26 +193,101 @@ class AVLTree(val storage: SecureStorage) {
         while (curr != null) {
             val cmp = compareKeys(curr.key, key)
             if (cmp > 0) {
-                curr = curr.getLeft()
+                curr = AVLNode.read(storage, gson, curr.left)
             } else if (cmp < 0) {
-                curr = curr.getRight()
+                curr = AVLNode.read(storage, gson, curr.right)
             } else {
                 result = curr.value
                 break
             }
         }
-        if (result?.toString(charset) == "null") {
-            return null
-        }
         return result
     }
 
-    fun size(): Int {
-        return root?.size() ?: 0
+    /**
+     * deletes a node from the tree
+     */
+    fun delete(key: ByteArray) {
+        root = AVLNode.read(storage, gson, delete(root, key))
     }
 
-    fun printTree() {
-        root?.printTree()
+    /**
+     * deletes a node from a subtree.
+     */
+    private fun delete(node: AVLNode?, key: ByteArray): ByteArray? {
+        if (node == null) {
+            return null
+        }
+        val cmp = compareKeys(node.key, key)
+        if (cmp > 0) {
+            node.left = delete(AVLNode.read(storage, gson, node.left), key)
+            node.save()
+            return node.key
+        } else if (cmp < 0) {
+            node.right = delete(AVLNode.read(storage, gson, node.right), key)
+            node.save()
+            return node.key
+        } else {
+            // found the node that needs to be deleted
+            if (node.left == null) {
+                return node.right
+            } else if (node.right == null) {
+                return node.left
+            } else {
+                // the node has 2 children
+                val result = replaceWithSuccessor(node)
+                return result.key
+            }
+
+        }
     }
 
+    private fun replaceWithSuccessor(node: AVLNode): AVLNode {
+        var prev = node
+        var curr: AVLNode = AVLNode.read(storage, gson, node.right)!!
+        while (curr.left != null) {
+            prev = curr
+            curr = AVLNode.read(storage, gson, curr.left)!!
+        }
+        if (prev.key.contentEquals(node.key)) {
+            prev.key = curr.key
+            prev.value = curr.value
+            prev.right = AVLNode.read(storage, gson, curr.right)?.key
+            prev.save()
+            updateHeights(root!!, prev.key)
+            return prev
+        }
+        prev.left = curr.right
+        prev.save()
+        node.key = curr.key
+        node.value = curr.value
+        node.save()
+        updateHeights(root!!, prev.key)
+        return node
+    }
+
+    private fun updateHeights(curr: AVLNode, key: ByteArray): Int {
+        val cmp = compareKeys(curr.key, key)
+        val rightNode = AVLNode.read(storage, gson, curr.right)
+        val leftNode = AVLNode.read(storage, gson, curr.left)
+        if (cmp > 0) {
+            if (rightNode != null) {
+                curr.height = max(rightNode.height, updateHeights(leftNode!!, key))
+            } else {
+                curr.height = updateHeights(leftNode!!, key) + 1
+            }
+            curr.save()
+            return curr.height
+        } else if (cmp < 0) {
+            if (leftNode != null) {
+                curr.height = max(leftNode.height, updateHeights(rightNode!!, key))
+            } else {
+                curr.height = updateHeights(rightNode!!, key) + 1
+            }
+            curr.save()
+            return curr.height
+        } else {
+            return -1
+        }
+    }
 }
