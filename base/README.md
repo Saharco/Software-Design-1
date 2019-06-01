@@ -12,9 +12,9 @@ This assignment uses the code from the submission by: 206824088-206866832
 ### Implementation Summary
 
 #### Database Abstraction
-Provides a convenient file system hierarchy for remote storage. Split into 5 main interfaces:
+Provides a convenient file system hierarchy for remote storage. Split into five interfaces:
 
-* **DatabaseFactory**: opens new / existing databases.
+* **DatabaseFactory**: opens new / existing databases. Implemented in CourseAppDatabaseFactory.
 * **Database**: akin to a *file system*: references its root. Used solely for navigating to nested collections.
 * **CollectionReference**: akin to a *folder* in a file system. Used solely for holding documents.
 * **DocumentReference**: akin to a *file* in a file system. Values are set in a key-value fashion. Terminal operations include: write/read/update/delete etc.
@@ -64,7 +64,7 @@ The following components were thoroughly tested:
 * **CourseAppStatistics**: tested in CourseAppStatisticsTest. The "top 10" methods' correctness is tested via load testing, and utilizes classes, methods & extension methods provided by utils.kt.
 * **AVLTree**: tested in AVLTreeTest.
 
-In total the tests span nearly 100% code coverage.
+In total the tests span nearly 100% code coverage across all the classes we've implemented.
 
 The tests run on JUnit 5.5 & Guice 1.9 and use the SecureStorageFactoryMock and SecureStorageMock classes to mock the missing behavior of the remote storage. GUice is used to provide the constructor parameter (database mapper) for CourseApp and CourseAppInitializer, and bind the interfaces to the implementations we wrote.
 
