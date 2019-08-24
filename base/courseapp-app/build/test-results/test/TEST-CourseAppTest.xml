@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="CourseAppTest" tests="33" skipped="0" failures="0" errors="0" timestamp="2019-08-24T21:06:24" hostname="DESKTOP-89PNSU8" time="16.487">
+  <properties/>
+  <testcase name="attempting to kick a member from a channel without operator privileges should throw UserNotAuthorizedException$courseapp_app()" classname="CourseAppTest" time="0.007"/>
+  <testcase name="attempting to kick a member from a channel with operator privileges for another channel should throw UserNotAuthorizedException$courseapp_app()" classname="CourseAppTest" time="0.004"/>
+  <testcase name="trying to appoint an operator as a user who's not a member of the channel should throw UserNotAuthorizedException$courseapp_app()" classname="CourseAppTest" time="0.004"/>
+  <testcase name="users can successfully join an existing channel$courseapp_app()" classname="CourseAppTest" time="0.003"/>
+  <testcase name="checking if user is logged in when they are not should return false$courseapp_app()" classname="CourseAppTest" time="0.002"/>
+  <testcase name="trying to appoint an operator as user who's neither operator nor administrator should throw UserNotAuthorizedException$courseapp_app()" classname="CourseAppTest" time="0.006"/>
+  <testcase name="trying to appoint a non-existing user to be an administrator should NoSuchEntityException$courseapp_app()" classname="CourseAppTest" time="0.004"/>
+  <testcase name="checking if user is logged in when they dont exist should return null$courseapp_app()" classname="CourseAppTest" time="0.001"/>
+  <testcase name="member &amp; admin can query the total number of members in the channel$courseapp_app()" classname="CourseAppTest" time="0.008"/>
+  <testcase name="user successfully logged in after login$courseapp_app()" classname="CourseAppTest" time="0.001"/>
+  <testcase name="member &amp; admin can query the number of active members in the channel$courseapp_app()" classname="CourseAppTest" time="0.006"/>
+  <testcase name="attempting to kick from a channel a member that does not exist should throw NoSuchEntityException$courseapp_app()" classname="CourseAppTest" time="0.004"/>
+  <testcase name="attempting login twice without logout should throw UserAlreadyLoggedInException$courseapp_app()" classname="CourseAppTest" time="0.002"/>
+  <testcase name="logging out with an invalid token should throw InvalidTokenException$courseapp_app()" classname="CourseAppTest" time="0.005"/>
+  <testcase name="operator can kick members from a channel$courseapp_app()" classname="CourseAppTest" time="0.005"/>
+  <testcase name="joining a channel more than once has no effect$courseapp_app()" classname="CourseAppTest" time="0.007"/>
+  <testcase name="creating two users with same username should throw NoSuchEntityException$courseapp_app()" classname="CourseAppTest" time="0.002"/>
+  <testcase name="joining a channel with an invalid name should throw NameFormatException$courseapp_app()" classname="CourseAppTest" time="0.006"/>
+  <testcase name="trying to appoint others to be administrators without a valid token should throw InvalidTokenException$courseapp_app()" classname="CourseAppTest" time="0.004"/>
+  <testcase name="using token to check login session after self's login session expires should throw InvalidTokenException$courseapp_app()" classname="CourseAppTest" time="0.003"/>
+  <testcase name="system can hold lots of distinct users and tokens$courseapp_app()" classname="CourseAppTest" time="0.132"/>
+  <testcase name="two different users should have different tokens$courseapp_app()" classname="CourseAppTest" time="0.002"/>
+  <testcase name="operator can appoint other channel members to be operators$courseapp_app()" classname="CourseAppTest" time="0.005"/>
+  <testcase name="first logged in user is an administrator by default$courseapp_app()" classname="CourseAppTest" time="0.001"/>
+  <testcase name="administrator can appoint other users to be administrators$courseapp_app()" classname="CourseAppTest" time="0.002"/>
+  <testcase name="attempting to leave a channel a user is not a member of should throw NoSuchEntityException$courseapp_app()" classname="CourseAppTest" time="0.002"/>
+  <testcase name="attempting to leave a channel that does not exist should throw NoSuchEntityException$courseapp_app()" classname="CourseAppTest" time="0.002"/>
+  <testcase name="attempting to kick from a channel a member who's not a member of the same channel should throw NoSuchEntityException$courseapp_app()" classname="CourseAppTest" time="0.003"/>
+  <testcase name="trying to appoint others to be administrators without authorization should throw UserNotAuthorizedException$courseapp_app()" classname="CourseAppTest" time="0.002"/>
+  <testcase name="creating a new channel without administrator authorization should throw UserNotAuthorizedException$courseapp_app()" classname="CourseAppTest" time="0.002"/>
+  <testcase name="channel is destroyed when last user leaves it$courseapp_app()" classname="CourseAppTest" time="0.003"/>
+  <testcase name="trying to appoint another user to an operator as an admin who's not an operator should throw UserNotAuthorizedException$courseapp_app()" classname="CourseAppTest" time="0.004"/>
+  <testcase name="administrator can successfully create new channels$courseapp_app()" classname="CourseAppTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

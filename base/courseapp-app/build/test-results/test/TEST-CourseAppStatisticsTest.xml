@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="CourseAppStatisticsTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2019-08-24T21:06:17" hostname="DESKTOP-89PNSU8" time="6.382">
+  <properties/>
+  <testcase name="top 10 user list does secondary sorting by registration order$courseapp_app()" classname="CourseAppStatisticsTest" time="0.105"/>
+  <testcase name="top 10 channel list counts only logged in users$courseapp_app()" classname="CourseAppStatisticsTest" time="0.031"/>
+  <testcase name="adding distinct users to the system properly increases total number of users$courseapp_app()" classname="CourseAppStatisticsTest" time="0.009"/>
+  <testcase name="querying top 10 when there are no channels should return an empty list$courseapp_app()" classname="CourseAppStatisticsTest" time="0.001"/>
+  <testcase name="top 10 channel list does secondary sorting by creation order$courseapp_app()" classname="CourseAppStatisticsTest" time="0.03"/>
+  <testcase name="can query total users when no users exist yet$courseapp_app()" classname="CourseAppStatisticsTest" time="0.0"/>
+  <testcase name="can query logged in users when no users are logged in$courseapp_app()" classname="CourseAppStatisticsTest" time="0.001"/>
+  <testcase name="load test - top 10 queries return the expected results$courseapp_app()" classname="CourseAppStatisticsTest" time="2.119"/>
+  <testcase name="logging in &amp; out changes the amount of logged in users accordingly$courseapp_app()" classname="CourseAppStatisticsTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
